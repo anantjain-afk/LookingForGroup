@@ -94,3 +94,51 @@ export const getPopularGames = async () => {
       throw error;
     }
   };
+  // 4. Get Discovery Games (Filtered by Genre/Mode)
+export const getDiscoveryGames = async (category) => {
+    const token = await getAccessToken();
+    let whereClause = "where cover != null & total_rating_count > 50";
+
+    // Categories mapping to IGDB IDs
+    // 5 = Shooter, 12 = RPG, 14 = Sport, 15 = Strategy, 31 = Adventure, 32 = Indie
+    // Game Modes: 2 = Multiplayer, 3 = Co-operative
+    switch (category) {
+        case 'shooters':
+            whereClause += " & genres = (5) & game_modes = (2) & multiplayer_modes.onlinemax > 1";// Competitive Shooters
+            break;
+        case 'rpg':
+              whereClause += " & genres = (12) & multiplayer_modes.onlinemax > 1"; // MMO & Raids (RPG + Multiplayer)
+            break;
+        case 'coop':
+              whereClause += " & (game_modes = (3) | multiplayer_modes.onlinecoop = true) & cover != null"; // Chill & Co-op
+            break;
+        default:
+            // "Trending" logic if no specific category or fallback
+              whereClause += " & total_rating_count > 100"; 
+              break;
+    }
+
+    try {
+      const query = `
+      fields name, cover.url, total_rating_count, genres.name, game_modes.name , multiplayer_modes.*;
+      sort total_rating_count desc;
+      
+      ${whereClause}; 
+      limit 20;
+    `;
+      const response = await axios.post(
+        'https://api.igdb.com/v4/games',
+        query,
+        {
+          headers: {
+            'Client-ID': process.env.IGDB_CLIENT_ID,
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("IGDB Discovery Error:", error.response?.data || error.message);
+      throw error;
+    }}

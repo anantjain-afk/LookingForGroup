@@ -42,10 +42,10 @@ export default function Navbar() {
       {/* CENTER */}
       {user && (
         <div className="flex items-center gap-10">
-          <NavLink active>Home</NavLink>
-          <NavLink>Browse Games</NavLink>
-          <NavLink>Lobbies</NavLink>
-          <NavLink>Profile</NavLink>
+          <NavLink to="/">Home</NavLink>
+          <NavLink to="/browse">Browse Games</NavLink>
+          <NavLink to="/lobbies">Lobbies</NavLink>
+          <NavLink to="/profile">Profile</NavLink>
         </div>
       )}
 
