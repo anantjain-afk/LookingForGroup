@@ -1,16 +1,11 @@
-// import prisma from "../lib/prisma.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import prisma from "../db/config.js"
-/**
- * POST /api/register
- * Register a new user
- */
+import * as authService from "../services/auth.service.js";
+
 export const register = async (req, res) => {
   try {
     const { email, username, password } = req.body;
 
-    // Validation
     if (!email || !username || !password) {
       return res.status(400).json({ error: "All fields are required" });
     }
@@ -21,13 +16,7 @@ export const register = async (req, res) => {
         .json({ error: "Password must be at least 6 characters" });
     }
 
-
-    const existingUser = await prisma.user.findFirst({
-      where: {
-        OR: [{ email }, { username }],
-      },
-    });
-
+    const existingUser = await authService.findUserByEmailOrUsername(email, username);
 
     if (existingUser) {
       if (existingUser.email === email) {
@@ -36,41 +25,26 @@ export const register = async (req, res) => {
       return res.status(409).json({ error: "Username already taken" });
     }
 
-    // Hash password
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-
-    const user = await prisma.user.create({
-      data: {
-        email,
-        username,
-        password : passwordHash,
-      },
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        avatar: true,
-        bio: true,
-        karmaScore: true,
-        createdAt: true,
-      },
+    const user = await authService.createUser({
+      email,
+      username,
+      password: passwordHash,
     });
 
-    // Generate JWT token
     const token = jwt.sign(
       { userId: user.id },
       process.env.JWT_SECRET || "your-secret-key-change-this",
       { expiresIn: "7d" },
     );
 
-    // Set HTTP-Only cookie
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000, 
     });
 
     res.status(201).json({
@@ -83,49 +57,40 @@ export const register = async (req, res) => {
   }
 };
 
-
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Validation
     if (!email || !password) {
       return res.status(400).json({ error: "Email and password are required" });
     }
 
-    // Find user
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
+    const user = await authService.findUserByEmail(email);
 
     if (!user) {
       return res.status(401).json({ error: "Invalid credentials (DB disabled)" });
     }
 
-    // Verify password
     const isValidPassword = await bcrypt.compare(password, user.password);
 
     if (!isValidPassword) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    // Generate JWT token
     const token = jwt.sign(
       { userId: user.id },
       process.env.JWT_SECRET || "your-secret-key-change-this",
       { expiresIn: "7d" },
     );
 
-    // Set HTTP-Only cookie
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    // Return user data (without password)
-    const { passwordHash, ...userWithoutPassword } = user;
+    const { password: _, ...userWithoutPassword } = user;
 
     res.json({
       message: "Login successful",
@@ -137,10 +102,6 @@ export const login = async (req, res) => {
   }
 };
 
-/**
- * POST /api/logout
- * Logout a user
- */
 export const logout = async (req, res) => {
   try {
     res.clearCookie("token", {

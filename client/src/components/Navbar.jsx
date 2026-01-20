@@ -57,7 +57,7 @@ export default function Navbar() {
               <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-[#3cff00]" />
             </div>
 
-            <button className="bg-[#3cff00] hover:bg-[#2bd400] text-black font-semibold px-4 py-2 rounded-lg transition">
+            <button className="bg-[#3cff00] hover:bg-[#2bd400] text-black font-semibold px-4 py-2 rounded-lg transition shadow-[0_0_15px_rgba(60,255,0,0.3)]">
               Create Lobby
             </button>
 
@@ -79,13 +79,13 @@ export default function Navbar() {
             <Button
               onClick={() => navigate("/login")}
               variant="ghost"
-              className="text-gray-300 hover:text-white"
+              className="text-[#3cff00] hover:text-[#3cff00] hover:bg-[#3cff00]/10 font-medium"
             >
               Login
             </Button>
             <Button
               onClick={() => navigate("/register")}
-              className="bg-[#3cff00] hover:bg-[#2bd400] text-black font-semibold"
+              className="bg-[#3cff00] hover:bg-[#2bd400] text-black font-semibold shadow-[0_0_15px_rgba(60,255,0,0.3)]"
             >
               Sign Up
             </Button>

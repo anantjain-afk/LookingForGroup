@@ -3,6 +3,7 @@ import { ToastProvider } from "./components/ui/toast";
 import { useAuthUser } from "./hooks/useAuthUser";
 import ProtectedRoute from "./components/ProtectedRoute";
 import DashboardPage from "./pages/DashboardPage";
+import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import "./App.css";
@@ -15,8 +16,9 @@ function App() {
     <ToastProvider>
       <Router>
         <Routes>
+          <Route path="/" element={<LandingPage />} />
           <Route
-            path="/"
+            path="/dashboard"
             element={
               <ProtectedRoute>
                 <DashboardPage />

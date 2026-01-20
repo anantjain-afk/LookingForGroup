@@ -1,6 +1,5 @@
+import prisma from "../db/config.js";
 import jwt from "jsonwebtoken";
-// import prisma from "../lib/prisma.js";
-
 /**
  * Middleware to verify JWT token from cookies
  * Protects routes that require authentication
@@ -21,8 +20,6 @@ export const verifyToken = async (req, res, next) => {
     );
 
     // Get user from database
-    // Get user from database
-    /*
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
       select: {
@@ -36,8 +33,6 @@ export const verifyToken = async (req, res, next) => {
         updatedAt: true,
       },
     });
-    */
-   const user = { id: decoded.userId }; // Placeholder
 
     if (!user) {
       return res.status(401).json({ error: "User not found" });
