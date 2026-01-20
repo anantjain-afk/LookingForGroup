@@ -6,18 +6,13 @@
 /**
  * GET /api/me
  * Returns the current authenticated user
- * @param {Object} req - Express request object
+ * @param {Object} req - Express request object (with req.user from verifyToken middleware)
  * @param {Object} res - Express response object
  */
 export const getMe = async (req, res) => {
   try {
-    // Mock user data (will be replaced with real auth later)
-    const mockUser = {
-      id: 1,
-      username: "TestUser",
-    };
-
-    res.json(mockUser);
+    // User is already attached to req by verifyToken middleware
+    res.json(req.user);
   } catch (error) {
     console.error("Error in getMe:", error);
     res.status(500).json({ error: "Failed to fetch user data" });

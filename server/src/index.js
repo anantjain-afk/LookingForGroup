@@ -1,7 +1,9 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import userRoutes from "./routes/userRoutes.js";
+import authRoutes from "./routes/auth.routes.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -15,9 +17,11 @@ app.use(
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 // Routes
 app.use("/api", userRoutes);
+app.use("/api/auth", authRoutes);
 
 // Health check
 app.get("/health", (req, res) => {

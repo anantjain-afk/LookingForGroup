@@ -1,37 +1,96 @@
-import { Bell, User } from "lucide-react";
+import { Bell, User, LogOut } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { useUserStore } from "../store/useUserStore";
+import { useToast } from "./ui/toast";
+import { apiPost } from "../api/client";
+import { Button } from "./ui/button";
 
 export default function Navbar() {
+  const user = useUserStore((state) => state.user);
+  const clearUser = useUserStore((state) => state.clearUser);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    try {
+      await apiPost("/api/auth/logout");
+      clearUser();
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out.",
+      });
+      navigate("/login");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to logout. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <nav className="w-full h-[72px] px-7 bg-gradient-to-b from-[#0e0f11] to-[#15171a] border-b border-[#1f2226] flex items-center justify-between">
       {/* LEFT */}
-      <div className="flex items-center gap-3">
+      <Link to="/" className="flex items-center gap-3">
         <div className="w-9 h-9 rounded-full border-2 border-[#3cff00] flex items-center justify-center">
           <div className="w-2.5 h-2.5 rounded-full bg-[#3cff00]" />
         </div>
         <span className="text-white text-lg font-semibold">LobbyLink</span>
-      </div>
+      </Link>
 
       {/* CENTER */}
-      <div className="flex items-center gap-10">
-        <NavLink active>Browse Lobbies</NavLink>
-        <NavLink>Find Teammates</NavLink>
-        <NavLink>Leaderboard</NavLink>
-      </div>
+      {user && (
+        <div className="flex items-center gap-10">
+          <NavLink active>Browse Lobbies</NavLink>
+          <NavLink>Find Teammates</NavLink>
+          <NavLink>Leaderboard</NavLink>
+        </div>
+      )}
 
       {/* RIGHT */}
       <div className="flex items-center gap-5">
-        <div className="relative cursor-pointer">
-          <Bell className="w-5 h-5 text-gray-300" />
-          <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-[#3cff00]" />
-        </div>
+        {user ? (
+          <>
+            <div className="relative cursor-pointer">
+              <Bell className="w-5 h-5 text-gray-300" />
+              <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-[#3cff00]" />
+            </div>
 
-        <button className="bg-[#3cff00] hover:bg-[#2bd400] text-black font-semibold px-4 py-2 rounded-lg transition">
-          Create Lobby
-        </button>
+            <button className="bg-[#3cff00] hover:bg-[#2bd400] text-black font-semibold px-4 py-2 rounded-lg transition">
+              Create Lobby
+            </button>
 
-        <div className="w-10 h-10 rounded-full border-2 border-[#3cff00] flex items-center justify-center cursor-pointer">
-          <User className="w-5 h-5 text-gray-300" />
-        </div>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full border-2 border-[#3cff00] flex items-center justify-center cursor-pointer">
+                <User className="w-5 h-5 text-gray-300" />
+              </div>
+              <button
+                onClick={handleLogout}
+                className="text-gray-400 hover:text-red-500 transition"
+                title="Logout"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={() => navigate("/login")}
+              variant="ghost"
+              className="text-gray-300 hover:text-white"
+            >
+              Login
+            </Button>
+            <Button
+              onClick={() => navigate("/register")}
+              className="bg-[#3cff00] hover:bg-[#2bd400] text-black font-semibold"
+            >
+              Sign Up
+            </Button>
+          </div>
+        )}
       </div>
     </nav>
   );
