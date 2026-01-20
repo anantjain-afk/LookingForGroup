@@ -30,7 +30,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="w-full h-[72px] px-7 bg-gradient-to-b from-[#0e0f11] to-[#15171a] border-b border-[#1f2226] flex items-center justify-between">
+    <nav className="sticky top-0 z-50 w-full h-[72px] px-7 bg-gradient-to-b from-[#0e0f11] to-[#15171a] border-b border-[#1f2226] flex items-center justify-between">
       {/* LEFT */}
       <Link to="/" className="flex items-center gap-3">
         <div className="w-9 h-9 rounded-full border-2 border-[#3cff00] flex items-center justify-center">
@@ -42,9 +42,10 @@ export default function Navbar() {
       {/* CENTER */}
       {user && (
         <div className="flex items-center gap-10">
-          <NavLink active>Browse Lobbies</NavLink>
-          <NavLink>Find Teammates</NavLink>
-          <NavLink>Leaderboard</NavLink>
+          <NavLink active>Home</NavLink>
+          <NavLink>Browse Games</NavLink>
+          <NavLink>Lobbies</NavLink>
+          <NavLink>Profile</NavLink>
         </div>
       )}
 
@@ -62,7 +63,10 @@ export default function Navbar() {
             </button>
 
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full border-2 border-[#3cff00] flex items-center justify-center cursor-pointer">
+              <div 
+                onClick={() => navigate("/profile")}
+                className="w-10 h-10 rounded-full border-2 border-[#3cff00] flex items-center justify-center cursor-pointer hover:bg-[#3cff00]/10 transition"
+              >
                 <User className="w-5 h-5 text-gray-300" />
               </div>
               <button

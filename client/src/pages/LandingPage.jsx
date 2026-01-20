@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Search, ArrowRight } from "lucide-react";
 import { useUserStore } from "../store/useUserStore";
 import Navbar from "../components/Navbar";
-
+import GameSearch from "../features/lobby/gameSearch";
 export default function LandingPage() {
   const navigate = useNavigate();
   const user = useUserStore((state) => state.user);
@@ -150,6 +150,7 @@ export default function LandingPage() {
                 </div>
             )}
        </div>
+       <GameSearch />
 
     </div>
   );

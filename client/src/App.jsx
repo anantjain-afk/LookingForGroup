@@ -4,6 +4,7 @@ import { useAuthUser } from "./hooks/useAuthUser";
 import ProtectedRoute from "./components/ProtectedRoute";
 import DashboardPage from "./pages/DashboardPage";
 import LandingPage from "./pages/LandingPage";
+import ProfilePage from "./pages/ProfilePage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import "./App.css";
@@ -25,6 +26,8 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/profile/:username" element={<ProfilePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
         </Routes>
