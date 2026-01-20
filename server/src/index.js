@@ -4,6 +4,8 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import userRoutes from "./routes/userRoutes.js";
 import authRoutes from "./routes/auth.routes.js";
+import lobbyRoutes from "./routes/lobby.routes.js";
+import gameRoutes from "./routes/game.routes.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -22,6 +24,8 @@ app.use(cookieParser());
 // Routes
 app.use("/api", userRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/lobbies", lobbyRoutes);
+app.use("/api/games", gameRoutes);
 
 // Health check
 app.get("/health", (req, res) => {

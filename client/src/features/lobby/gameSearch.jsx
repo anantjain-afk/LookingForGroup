@@ -12,12 +12,9 @@ export default function GameSearch() {
     queryFn: async () => {
       if (!search || search.length < 2) return [];
       
-      // 2. Debugging: See exactly what the server sends
-    //   const res = await axios.get(`/api/games?query=${search}`);
-    //   console.log("Server Response:", res.data); 
-    const res = await axios.get(`/api/games`);
+    const res = await axios.get(`/api/games?query=${search}`);
     console.log("Server Response:", res.data); 
-    
+
       
       // 3. CRITICAL: Return res.data (the array), not res (the object)
       return res.data; 

@@ -3,6 +3,7 @@ import { Search, ArrowRight } from "lucide-react";
 import { useUserStore } from "../store/useUserStore";
 import Navbar from "../components/Navbar";
 import GameSearch from "../features/lobby/gameSearch";
+import GameGrid from "../features/lobby/GameGrid";
 export default function LandingPage() {
   const navigate = useNavigate();
   const user = useUserStore((state) => state.user);
@@ -111,13 +112,11 @@ export default function LandingPage() {
         </div>
       </div>
 
-       {/* Lobbies Section - Placeholder for now */}
+       {/* Lobbies Section */}
        <div className="px-6 md:px-16 py-12 max-w-7xl mx-auto border-t border-gray-800">
-            <h2 className="text-3xl font-bold mb-8">Active Lobbies <span className="text-gray-500 text-lg font-normal">(Coming Soon)</span></h2>
-            
-            {/* Conditional Message */}
+            {/* Conditional Content */}
             {!user ? (
-                <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-8 text-center space-y-4">
+                 <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-8 text-center space-y-4">
                     <p className="text-gray-400">Join LobbyLink to see and create lobbies.</p>
                     <button 
                         onClick={() => navigate("/login")}
@@ -125,32 +124,20 @@ export default function LandingPage() {
                     >
                         Login to access lobbies
                     </button>
+                    {/* Publicly visible popular games could go here too if desired, usually standard pattern */}
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {/* Placeholder Lobby Cards */}
-                    {[1, 2, 3].map((i) => (
-                        <div key={i} className="bg-[#151515] border border-gray-800 p-6 rounded-xl hover:border-emerald-500/50 transition cursor-pointer group">
-                             <div className="h-40 bg-gray-800 rounded-lg mb-4 relative overflow-hidden">
-                                <div className="absolute inset-0 flex items-center justify-center text-gray-500">
-                                    Game Artwork
-                                </div>
-                             </div>
-                             <div className="flex justify-between items-start mb-2">
-                                <h3 className="font-bold text-lg group-hover:text-emerald-400 transition">Valorant Ranked</h3>
-                                <div className="text-xs bg-gray-800 px-2 py-1 rounded text-gray-400">3/5</div>
-                             </div>
-                             <p className="text-gray-400 text-sm mb-4">Looking for chill teammates, gold rank, mic required.</p>
-                             <div className="flex gap-2">
-                                <span className="text-xs bg-emerald-500/10 text-emerald-500 px-2 py-1 rounded">Competitive</span>
-                                <span className="text-xs bg-blue-500/10 text-blue-500 px-2 py-1 rounded">Mic On</span>
-                             </div>
-                        </div>
-                    ))}
+                <div className="space-y-12">
+                     {/* Search - Keeping existing placeholder or componente */}
+                     <div className="max-w-md">
+                        <GameSearch /> 
+                     </div>
+                     
+                     {/* Popular Games Grid */}
+                     <GameGrid />
                 </div>
             )}
        </div>
-       <GameSearch />
 
     </div>
   );

@@ -36,6 +36,7 @@ const getAccessToken = async () => {
 };
 
 // 2. The Search Function
+// 2. The Search Function
 export const searchGames = async (query) => {
   const token = await getAccessToken();
 
@@ -44,6 +45,7 @@ export const searchGames = async (query) => {
       'https://api.igdb.com/v4/games',
       // The "Body" here is the Apicalypse Query Language
       `search "${query}"; 
+      
        fields name, cover.url, genres.name, platforms.name, first_release_date; 
        limit 20;`,
       {
@@ -60,3 +62,35 @@ export const searchGames = async (query) => {
     throw error;
   }
 };
+
+// 3. Get Popular Games (Trending)
+export const getPopularGames = async () => {
+    const token = await getAccessToken();
+  
+    try {
+      const query = `
+      fields name, cover.url, total_rating_count, genres.name, game_modes.name, multiplayer_modes.*;
+      sort total_rating_count desc;
+      where cover != null 
+        & total_rating_count > 100 
+        & multiplayer_modes.onlinemax > 1; 
+      limit 20;
+    `;
+      const response = await axios.post(
+        'https://api.igdb.com/v4/games',
+        query,
+        {
+          headers: {
+            'Client-ID': process.env.IGDB_CLIENT_ID,
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
+          },
+        }
+      );
+      console.log("IGDB Popular Games Response:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("IGDB Popular Games Error:", error.response?.data || error.message);
+      throw error;
+    }
+  };
