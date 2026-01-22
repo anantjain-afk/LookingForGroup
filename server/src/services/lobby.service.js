@@ -1,16 +1,39 @@
 import prisma from '../db/config.js';
 
+import { getGameById } from './igdb.service.js';
+
 export const createLobby = async (data, hostId) => {
-  // data: { title, description?, gameId, maxPlayers?, tags: [tagId, tagId] }
   const { title, description, gameId, maxPlayers, tags } = data;
 
+  // 1. Resolve Game ID (Handle Internal vs IGDB ID)
+  // Input 'gameId' is likely the IGDB ID (Int) from the frontend
+  let localGame = await prisma.game.findUnique({
+      where: { igdbId: parseInt(gameId) }
+  });
+
+  if (!localGame) {
+      // Fetch details from IGDB to create local record
+      const igdbGame = await getGameById(gameId);
+      if (!igdbGame) throw new Error("Invalid Game ID");
+      
+      localGame = await prisma.game.create({
+          data: {
+              name: igdbGame.name,
+              igdbId: igdbGame.id,
+              imageUrl: igdbGame.cover,
+              genre: igdbGame.genres[0] || "Unknown"
+          }
+      });
+  }
+
+  // 2. Create Lobby linked to the local Game ID
   const lobby = await prisma.lobby.create({
     data: {
       title,
       description,
-      maxPlayers: parseInt(maxPlayers) || 5, // ensure int
+      maxPlayers: parseInt(maxPlayers) || 5, 
       host: { connect: { id: hostId } },
-      game: { connect: { id: gameId } },
+      game: { connect: { id: localGame.id } }, // Use local CUID
       tags: tags && tags.length > 0 ? {
         create: tags.map(tagId => ({
           tag: { connect: { id: tagId } }
@@ -44,12 +67,34 @@ export const createLobby = async (data, hostId) => {
 };
 
 export const getAllLobbies = async (filters = {}) => {
-  // Can add filtering logic here later (by game, tag, etc.)
+  const { gameId, ...otherFilters } = filters;
+  
+  const where = {
+     status: 'OPEN',
+     ...otherFilters
+  };
+
+  if (gameId) {
+      // If It's a number (IGDB ID), find the local ID first
+      // Because Lobby.gameId stores the local CUID
+      const localGame = await prisma.game.findUnique({
+          where: { igdbId: parseInt(gameId) } // Assuming we added igdbId @unique
+      });
+      
+      if (localGame) {
+           where.gameId = localGame.id;
+      } else {
+           // If passed ID is a CUID string (less likely from our UI but possible)
+           if (typeof gameId === 'string' && gameId.length > 20) {
+               where.gameId = gameId;
+           } else {
+               return []; // Game not found locally, so no lobbies
+           }
+      }
+  }
+
   const lobbies = await prisma.lobby.findMany({
-    where: {
-      status: 'OPEN',
-      // ...filters
-    },
+    where,
     orderBy: { createdAt: 'desc' },
     include: {
       game: true,

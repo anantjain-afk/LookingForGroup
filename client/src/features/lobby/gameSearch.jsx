@@ -42,7 +42,7 @@ export default function GameSearch({ onSelect }) {
             setSearch(e.target.value);
             setSelectedGame(null); // Clear selection on edit
         }}
-        className="bg-[#1a1a1a] border-[#333] text-white focus:ring-[#3cff00] focus:border-[#3cff00] placeholder:text-gray-500"
+        className="bg-[#424549] border-[#7289da] text-white focus:ring-[#7289da] focus:border-[#7289da] placeholder:text-gray-400"
       />
       
       {/* Loading State */}
@@ -53,11 +53,11 @@ export default function GameSearch({ onSelect }) {
 
       {/* Results Dropdown */}
       {gameList.length > 0 && !selectedGame && (
-        <div className="border border-[#333] rounded-md bg-[#1a1a1a] p-2 max-h-60 overflow-y-auto mt-2 absolute z-10 w-full max-w-2xl shadow-xl">
+        <div className="border border-[#7289da] rounded-md bg-[#424549] p-2 max-h-60 overflow-y-auto mt-2 absolute z-10 w-full max-w-2xl shadow-xl">
           {gameList.map((game) => (
             <div 
               key={game.id} 
-              className="flex items-center gap-3 p-2 hover:bg-[#333] cursor-pointer rounded transition-colors"
+              className="flex items-center gap-3 p-2 hover:bg-[#7289da] cursor-pointer rounded transition-colors"
               onClick={() => handleSelect(game)}
             >
                {/* Handle missing images safely */}

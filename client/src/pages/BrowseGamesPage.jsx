@@ -13,8 +13,8 @@ const fetchGames = async (params) => {
 };
 
 // Reusable Game Card Component
-const GameCard = ({ game }) => (
-    <div className="group relative bg-[#151515] rounded-l overflow-hidden cursor-pointer hover:scale-105 transition-all duration-300 border border-transparent hover:border-[#3cff00] hover:shadow-[0_0_15px_rgba(60,255,0,0.2)] aspect-[2/3]">
+const GameCard = ({ game, onClick }) => (
+    <div onClick={onClick} className="group relative bg-[#151515] rounded-l overflow-hidden cursor-pointer hover:scale-105 transition-all duration-300 border border-transparent hover:border-[#3cff00] hover:shadow-[0_0_15px_rgba(60,255,0,0.2)] aspect-[2/3]">
         <img 
             src={game.cover || "https://placehold.co/300x400/1e293b/475569?text=No+Cover"} 
             alt={game.name} 
@@ -36,7 +36,7 @@ const GameCard = ({ game }) => (
 );
 
 // Reusable Section Component
-const GameSection = ({ title, games, isLoading }) => {
+const GameSection = ({ title, games, isLoading, onGameClick }) => {
     if (isLoading) {
         return (
             <div className="space-y-4">
@@ -62,7 +62,7 @@ const GameSection = ({ title, games, isLoading }) => {
             <div className="flex gap-4 overflow-x-auto pb-6 scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent px-1">
                 {games.map(game => (
                     <div key={game.id} className="min-w-[160px] md:min-w-[200px] w-[160px] md:w-[200px]">
-                        <GameCard game={game} />
+                        <GameCard game={game} onClick={() => onGameClick(game.id)} />
                     </div>
                 ))}
             </div>
@@ -73,6 +73,10 @@ const GameSection = ({ title, games, isLoading }) => {
 export default function BrowseGamesPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const navigate = useNavigate();
+
+    const handleGameClick = (gameId) => {
+        navigate(`/game/${gameId}`);
+    };
 
     // Condition A: Discovery View (Parallel queries)
     const discoveryQueries = useQueries({
@@ -131,7 +135,7 @@ export default function BrowseGamesPage() {
                              ) : (
                                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
                                      {Array.isArray(searchResults) && searchResults.map(game => (
-                                         <GameCard key={game.id} game={game} />
+                                         <GameCard key={game.id} game={game} onClick={() => handleGameClick(game.id)} />
                                      ))}
                                      {Array.isArray(searchResults) && searchResults.length === 0 && (
                                          <p className="text-gray-500 col-span-full text-center py-10">No games found.</p>
@@ -142,10 +146,10 @@ export default function BrowseGamesPage() {
                     ) : (
                         // Discovery Sections
                         <div className="space-y-16 animate-fade-in">
-                            <GameSection title="Trending Now" games={trending.data} isLoading={trending.isLoading} />
-                            <GameSection title="Competitive Shooters" games={shooters.data} isLoading={shooters.isLoading} />
-                            <GameSection title="MMO & Raids" games={rpg.data} isLoading={rpg.isLoading} />
-                            <GameSection title="Chill & Co-op" games={coop.data} isLoading={coop.isLoading} />
+                            <GameSection title="Trending Now" games={trending.data} isLoading={trending.isLoading} onGameClick={handleGameClick} />
+                            <GameSection title="Competitive Shooters" games={shooters.data} isLoading={shooters.isLoading} onGameClick={handleGameClick} />
+                            <GameSection title="MMO & Raids" games={rpg.data} isLoading={rpg.isLoading} onGameClick={handleGameClick} />
+                            <GameSection title="Chill & Co-op" games={coop.data} isLoading={coop.isLoading} onGameClick={handleGameClick} />
                         </div>
                     )}
                 </div>

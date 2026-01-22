@@ -36,7 +36,6 @@ const getAccessToken = async () => {
 };
 
 // 2. The Search Function
-// 2. The Search Function
 export const searchGames = async (query) => {
   const token = await getAccessToken();
 
@@ -94,17 +93,16 @@ export const getPopularGames = async () => {
       throw error;
     }
   };
-  // 4. Get Discovery Games (Filtered by Genre/Mode)
+
+// 4. Get Discovery Games (Filtered by Genre/Mode)
 export const getDiscoveryGames = async (category) => {
     const token = await getAccessToken();
     let whereClause = "where cover != null & total_rating_count > 50";
 
     // Categories mapping to IGDB IDs
-    // 5 = Shooter, 12 = RPG, 14 = Sport, 15 = Strategy, 31 = Adventure, 32 = Indie
-    // Game Modes: 2 = Multiplayer, 3 = Co-operative
     switch (category) {
         case 'shooters':
-            whereClause += " & genres = (5) & game_modes = (2) & multiplayer_modes.onlinemax > 1";// Competitive Shooters
+            whereClause += " & genres = (5) & game_modes = (2) & multiplayer_modes.onlinemax > 1"; // Competitive Shooters
             break;
         case 'rpg':
               whereClause += " & genres = (12) & multiplayer_modes.onlinemax > 1"; // MMO & Raids (RPG + Multiplayer)
@@ -141,4 +139,37 @@ export const getDiscoveryGames = async (category) => {
     } catch (error) {
       console.error("IGDB Discovery Error:", error.response?.data || error.message);
       throw error;
-    }}
+    }
+};
+
+// 5. Get Game Details by ID
+export const getGameById = async (gameId) => {
+    const token = await getAccessToken();
+    try {
+        const response = await axios.post(
+            'https://api.igdb.com/v4/games',
+            `fields name, cover.url, genres.name, platforms.name, first_release_date; where id = ${gameId};`,
+            {
+                headers: {
+                    'Client-ID': process.env.IGDB_CLIENT_ID,
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json',
+                },
+            }
+        );
+        const game = response.data[0];
+        if (!game) return null;
+        
+        return {
+             id: game.id,
+             name: game.name,
+             cover: game.cover ? `https:${game.cover.url.replace('t_thumb', 't_cover_big')}` : null,
+             genres: game.genres?.map(g => g.name) || [],
+             platforms: game.platforms?.map(p => p.name) || [],
+             releaseDate: game.first_release_date
+        };
+    } catch (error) {
+        console.error("IGDB Get Game Error:", error.response?.data || error.message);
+        throw error;
+    }
+};

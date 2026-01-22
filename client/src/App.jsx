@@ -6,6 +6,7 @@ import DashboardPage from "./pages/DashboardPage";
 import LandingPage from "./pages/LandingPage";
 import ProfilePage from "./pages/ProfilePage";
 import BrowseGamesPage from "./pages/BrowseGamesPage";
+import LobbyBrowserPage from "./pages/LobbyBrowserPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import HostNewLobby from "./pages/HostNewLobby";
@@ -33,6 +34,7 @@ function App() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/profile/:username" element={<ProfilePage />} />
           <Route path="/browse" element={<BrowseGamesPage />} />
+          <Route path="/game/:gameId" element={<LobbyBrowserPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/host-new-lobby" element={<HostNewLobby />} />
