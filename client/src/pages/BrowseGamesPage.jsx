@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useQueries } from '@tanstack/react-query';
 import axios from 'axios';
 import { Search } from 'lucide-react';
-import Navbar from '../components/Navbar';
+
 import { useNavigate } from "react-router-dom";
 
 // Helper to fetch games
@@ -95,7 +95,7 @@ export default function BrowseGamesPage() {
 
     return (
         <div className="min-h-screen bg-[#0a0a0a] text-white">
-            <Navbar />
+
 
             <div className="max-w-7xl mx-auto px-6 py-8 space-y-12">
                 

@@ -1,13 +1,13 @@
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Flame } from "lucide-react";
-import Navbar from "../components/Navbar";
+
 
 export default function ProfilePage() {
   const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <Navbar />
+
       
       {/* Main Container */}
       <div className="max-w-7xl mx-auto px-6 py-8">

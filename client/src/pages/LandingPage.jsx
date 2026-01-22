@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Search, ArrowRight } from "lucide-react";
 import { useUserStore } from "../store/useUserStore";
-import Navbar from "../components/Navbar";
+
 import GameSearch from "../features/lobby/gameSearch";
 import GameGrid from "../features/lobby/GameGrid";
 export default function LandingPage() {
@@ -10,8 +10,7 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white overflow-x-hidden">
-      {/* Global Navbar */}
-      <Navbar />
+
 
       {/* Hero Section */}
       <div className="relative flex flex-col md:flex-row items-center justify-between px-6 md:px-16 py-6 md:py-10 max-w-7xl mx-auto">

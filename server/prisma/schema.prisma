@@ -42,7 +42,7 @@ model Tag {
   id       String  @id @default(cuid())
   name     String  @unique
   category String? // e.g., "Vibe", "Rank", "Mode"
-  lobbies  Lobby[]
+  lobbies  LobbyTag[]
 }
 
 model Lobby {
@@ -59,7 +59,7 @@ model Lobby {
   game   Game   @relation(fields: [gameId], references: [id])
 
   participants LobbyParticipant[]
-  tags         Tag[]
+  tags         LobbyTag[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -75,4 +75,14 @@ model LobbyParticipant {
   joinedAt DateTime @default(now())
 
   @@unique([userId, lobbyId])
+}
+
+
+model LobbyTag {
+  lobbyId String
+  lobby   Lobby @relation(fields: [lobbyId], references: [id])
+  tagId   String
+  tag     Tag   @relation(fields: [tagId], references: [id])
+
+  @@id([lobbyId, tagId])
 }

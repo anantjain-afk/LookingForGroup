@@ -87,7 +87,7 @@ export const getPopularGames = async () => {
           },
         }
       );
-      console.log("IGDB Popular Games Response:", response.data);
+      // console.log("IGDB Popular Games Response:", response.data);
       return response.data;
     } catch (error) {
       console.error("IGDB Popular Games Error:", error.response?.data || error.message);

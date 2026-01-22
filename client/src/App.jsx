@@ -8,15 +8,18 @@ import ProfilePage from "./pages/ProfilePage";
 import BrowseGamesPage from "./pages/BrowseGamesPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import HostNewLobby from "./pages/HostNewLobby";
+import Navbar from "./components/Navbar";
 import "./App.css";
-
 function App() {
   // Fetch authenticated user on app load
   useAuthUser();
-
   return (
     <ToastProvider>
+     
       <Router>
+        <div className="App">
+        <Navbar />
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route
@@ -32,7 +35,9 @@ function App() {
           <Route path="/browse" element={<BrowseGamesPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/host-new-lobby" element={<HostNewLobby />} />
         </Routes>
+        </div>
       </Router>
     </ToastProvider>
   );
