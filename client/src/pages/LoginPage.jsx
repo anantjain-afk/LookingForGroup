@@ -58,7 +58,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl">
-            Welcome to <span className="text-emerald-500">LobbyLink</span>
+            Welcome to <span className="bg-gradient-to-r from-green-600 to-emerald-700 rounded-lg px-2 py-1 text-white hover:text-gray-100 text-3xl font-semibold">LFG</span>
           </CardTitle>
           <CardDescription>
             Login to find your perfect gaming squad

@@ -64,7 +64,7 @@ export default function RegisterPage() {
       // Show success toast
       toast({
         title: "Account created!",
-        description: "Welcome to LobbyLink. Let's find your squad!",
+        description: "Welcome to LFG. Let's find your squad!",
       });
 
       // Redirect to dashboard
@@ -85,7 +85,7 @@ export default function RegisterPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl">
-            Join <span className="text-emerald-500">LobbyLink</span>
+            Join <span className="bg-gradient-to-r from-green-600 to-emerald-700 rounded-lg px-2 py-1 text-white hover:text-gray-100 text-3xl font-semibold">LFG</span>
           </CardTitle>
           <CardDescription>
             Create an account to start finding your perfect gaming squad

@@ -1,4 +1,4 @@
-# Project Specifications: LobbyLink (LFG Platform)
+# Project Specifications: LFG (LFG Platform)
 
 ## 1. Project Overview
 **Concept:** A "Looking For Group" (LFG) platform where gamers find teammates based on social compatibility (tags like "No Swearing," "Chill," "Mic Required") rather than just skill. many rooms with different for a single game 

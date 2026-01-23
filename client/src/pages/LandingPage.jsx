@@ -116,7 +116,7 @@ export default function LandingPage() {
             {/* Conditional Content */}
             {!user ? (
                  <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-8 text-center space-y-4">
-                    <p className="text-gray-400">Join LobbyLink to see and create lobbies.</p>
+                    <p className="text-gray-400">Join <span className="bg-gradient-to-r from-green-600 to-emerald-700 rounded-lg px-2 py-1 text-white hover:text-gray-100 text-lg font-semibold">LFG</span> to see and create lobbies.</p>
                     <button 
                         onClick={() => navigate("/login")}
                         className="text-emerald-500 hover:text-emerald-400 font-medium hover:underline"

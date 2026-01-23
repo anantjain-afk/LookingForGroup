@@ -14,7 +14,7 @@ const fetchGames = async (params) => {
 
 // Reusable Game Card Component
 const GameCard = ({ game, onClick }) => (
-    <div onClick={onClick} className="group relative bg-[#151515] rounded-l overflow-hidden cursor-pointer hover:scale-105 transition-all duration-300 border border-transparent hover:border-[#5865F2] hover:shadow-[0_0_15px_rgba(60,255,0,0.2)] aspect-[2/3]">
+    <div onClick={onClick} className="group relative bg-[#151515] rounded-2xl overflow-hidden cursor-pointer hover:scale-105 transition-all duration-300 border border-transparent hover:border-[#5865F2] hover:shadow-[0_0_15px_rgba(60,255,0,0.2)] aspect-[2/3]">
         <img 
             src={game.cover || "https://placehold.co/300x400/1e293b/475569?text=No+Cover"} 
             alt={game.name} 
