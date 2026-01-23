@@ -58,7 +58,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl">
-            Welcome to <span className="text-green-500">LobbyLink</span>
+            Welcome to <span className="text-emerald-500">LobbyLink</span>
           </CardTitle>
           <CardDescription>
             Login to find your perfect gaming squad
@@ -92,12 +92,12 @@ export default function LoginPage() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full bg-emerald-700 hover:bg-emerald-800" disabled={isLoading}>
               {isLoading ? "Logging in..." : "Login"}
             </Button>
             <p className="text-sm text-gray-400 text-center">
               Don't have an account?{" "}
-              <Link to="/register" className="text-green-500 hover:underline">
+              <Link to="/register" className="text-emerald-500 hover:underline">
                 Sign up
               </Link>
             </p>

@@ -85,7 +85,7 @@ export default function RegisterPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl">
-            Join <span className="text-green-500">LobbyLink</span>
+            Join <span className="text-emerald-500">LobbyLink</span>
           </CardTitle>
           <CardDescription>
             Create an account to start finding your perfect gaming squad
@@ -143,12 +143,12 @@ export default function RegisterPage() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full bg-emerald-700 hover:bg-emerald-800" disabled={isLoading}>
               {isLoading ? "Creating account..." : "Sign Up"}
             </Button>
             <p className="text-sm text-gray-400 text-center">
               Already have an account?{" "}
-              <Link to="/login" className="text-green-500 hover:underline">
+              <Link to="/login" className="text-emerald-500 hover:underline">
                 Login
               </Link>
             </p>

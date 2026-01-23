@@ -33,8 +33,8 @@ export default function Navbar() {
     <nav className="sticky top-0 z-50 w-full h-[72px] px-7 bg-gradient-to-b from-[#0e0f11] to-[#15171a] border-b border-[#1f2226] flex items-center justify-between">
       {/* LEFT */}
       <Link to="/" className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-full border-2 border-[#3cff00] flex items-center justify-center">
-          <div className="w-2.5 h-2.5 rounded-full bg-[#3cff00]" />
+        <div className="w-9 h-9 rounded-full border-2 border-[#5865F2] flex items-center justify-center">
+          <div className="w-2.5 h-2.5 rounded-full bg-[#5865F2]" />
         </div>
         <span className="text-white text-lg font-semibold">LobbyLink</span>
       </Link>
@@ -54,10 +54,10 @@ export default function Navbar() {
           <>
             <div className="relative cursor-pointer">
               <Bell className="w-5 h-5 text-gray-300" />
-              <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-[#3cff00]" />
+              <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-[#5865F2]" />
             </div>
 
-            <Link to="/host-new-lobby" className="bg-[#3cff00] hover:bg-[#2bd400] text-black font-semibold px-4 py-2 rounded-lg transition shadow-[0_0_15px_rgba(60,255,0,0.3)]">
+            <Link to="/host-new-lobby" className="bg-[#5865F2] hover:bg-[#4752c4] text-black font-semibold px-4 py-2 rounded-lg transition">
               Create Lobby
             </Link>
 
@@ -81,14 +81,13 @@ export default function Navbar() {
           <div className="flex items-center gap-3">
             <Button
               onClick={() => navigate("/login")}
-              variant="ghost"
-              className="text-[#3cff00] hover:text-[#3cff00] hover:bg-[#3cff00]/10 font-medium"
+              className="text-[#5865F2] hover:text-[#4752c4] hover:bg-[#5865F2]/10 font-medium"
             >
               Login
             </Button>
             <Button
               onClick={() => navigate("/register")}
-              className="bg-[#3cff00] hover:bg-[#2bd400] text-black font-semibold shadow-[0_0_15px_rgba(60,255,0,0.3)]"
+              className="bg-[#5865F2] hover:bg-[#4752c4] text-black font-semibold "
             >
               Sign Up
             </Button>
@@ -107,12 +106,12 @@ function NavLink({ children, to }) {
     <Link
       to={to}
       className={`relative cursor-pointer text-sm font-medium transition ${
-        isActive ? "text-[#3cff00]" : "text-gray-400 hover:text-white"
+        isActive ? "text-[#5865F2]" : "text-gray-400 hover:text-white"
       }`}
     >
       {children}
       {isActive && (
-        <span className="absolute left-0 -bottom-1 w-full h-[2px] bg-[#3cff00] rounded-full" />
+        <span className="absolute left-0 -bottom-1 w-full h-[2px] bg-[#5865F2] rounded-full" />
       )}
     </Link>
   );

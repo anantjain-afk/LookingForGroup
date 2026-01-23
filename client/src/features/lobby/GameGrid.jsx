@@ -41,7 +41,7 @@ export default function GameGrid() {
         {gameList.map((game) => (
           <div 
             key={game.id} 
-            className="group relative bg-[#151515] rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-all duration-300 border border-transparent hover:border-[#3cff00] hover:shadow-[0_0_15px_rgba(60,255,0,0.2)]"
+            className="group relative bg-[#151515] rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-all duration-300 border border-transparent hover:border-[#5865F2] hover:shadow-[0_0_15px_rgba(60,255,0,0.2)]"
           >
             {/* Image Container */}
             <div className="aspect-[3/4] w-full relative">
@@ -52,13 +52,13 @@ export default function GameGrid() {
                 loading="lazy"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
-                <span className="text-[#3cff00] text-xs font-bold uppercase tracking-wider mb-1">View Lobbies</span>
+                <span className="text-emerald-500 text-xs font-bold uppercase tracking-wider mb-1">View Lobbies</span>
               </div>
             </div>
             
             {/* Game Info */}
             <div className="p-3">
-              <h3 className="text-white font-bold truncate text-sm md:text-base group-hover:text-[#3cff00] transition-colors">{game.name}</h3>
+              <h3 className="text-white font-bold truncate text-sm md:text-base group-hover:text-emerald-600 transition-colors">{game.name}</h3>
               {game.genres && game.genres.length > 0 && (
                 <p className="text-gray-500 text-xs truncate mt-1">{game.genres.join(', ')}</p>
               )}

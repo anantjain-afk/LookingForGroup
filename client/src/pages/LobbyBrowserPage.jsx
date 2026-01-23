@@ -63,8 +63,8 @@ export default function LobbyBrowserPage() {
           <h1 className="text-5xl md:text-6xl font-black text-white tracking-widest uppercase drop-shadow-2xl">
             {game.name}
           </h1>
-          <p className="text-gray-3000 font-medium text-lg mt-2 text-[#3cff00] flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#3cff00] animate-pulse" />
+          <p className="text-gray-3000 font-medium text-lg mt-2 text-emerald-500 flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
             {activeLobbyCount} Active Lobbies
           </p>
         </div>
@@ -163,7 +163,7 @@ function LobbyCard({ lobby }) {
 
                      {/* Metadata Row */}
                      <div className="flex items-center gap-4 text-xs font-medium text-gray-400 pt-2">
-                         <div className={cn("flex items-center gap-1.5", isFull ? "text-red-400" : "text-[#3cff00]")}>
+                         <div className={cn("flex items-center gap-1.5", isFull ? "text-red-400" : "text-emerald-600")}>
                              <Users size={14} />
                              <span>{lobby.participants.length}/{lobby.maxPlayers} Players</span>
                          </div>

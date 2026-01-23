@@ -153,20 +153,20 @@ export default function LobbyPage() {
         <div className="flex-1 flex flex-col relative min-w-0">
             
             {/* Header */}
-            <div className="h-12 border-b border-[#1f2023] flex items-center px-4 justify-between bg-[#313338] shadow-sm z-10">
+            <div className="h-12 border-b border-[#1b1c1e] flex items-center px-4 justify-between bg-[#313338] shadow-sm z-10">
                 <div className="flex items-center gap-3 overflow-hidden">
                     <h2 className="font-bold text-white text-lg truncate flex items-center gap-2">
                          {lobby.title}
                     </h2>
                     <div className="hidden md:flex gap-2">
                          {lobby.tags?.map(tag => (
-                             <span key={tag.id} className="bg-[#2b2d31] text-xs font-medium px-2 py-0.5 rounded text-gray-300">
+                             <span key={tag.id} className="bg-[#4566dd] text-xs font-medium px-2 py-0.5 rounded text-gray-300">
                                  {tag.name}
                              </span>
                          ))}
                     </div>
                 </div>
-                <div className="text-gray-400 text-xs font-mono">
+                <div className="text-emerald-500 text-xs font-mono">
                     {lobby.game?.name}
                 </div>
             </div>

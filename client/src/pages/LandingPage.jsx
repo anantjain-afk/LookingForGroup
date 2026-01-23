@@ -64,7 +64,7 @@ export default function LandingPage() {
                 <div className="pt-4">
                     <button 
                         onClick={() => navigate("/register")}
-                        className="flex items-center gap-2 bg-[#3cff00] text-black px-8 py-4 rounded-full font-bold text-lg hover:bg-[#32d500] transition shadow-[0_0_20px_rgba(60,255,0,0.3)] hover:shadow-[0_0_30px_rgba(60,255,0,0.5)]" 
+                        className="flex items-center gap-2 bg-[#5865F2] text-black px-8 py-4 rounded-full font-bold text-lg hover:bg-[#4752c4] transition " 
                     >
                         Get Started <ArrowRight size={20} />
                     </button>

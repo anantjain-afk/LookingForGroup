@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/ui/toast';
 import { apiPost } from '../api/client';
-
+import { Check } from 'lucide-react';
 import GameSearch from '../features/lobby/gameSearch';
 import { Gamepad2, Hash, AlignLeft, Tag } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -152,15 +152,8 @@ const HostNewLobby = () => {
                                                 : " border-[#7289da] text-gray-400 hover:border-[#7289da] hover:text-[#7289da]"
                                         )}
                                     >
-                                        <div className={`
-                                            w-5 h-5    border-[#7289da] flex items-center justify-center transition
-                                            ${isSelected ? "border-[#7289da] bg-[#7289da]" : "border-[#7289da]"}`
-                                        }>
-                                            {isSelected && (
-                                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <path d="M10 3L4.5 8.5L2 6" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                                </svg>
-                                            )}
+                                        <div className={`w-5 h-5  border-2 !border-[#7289da] ${isSelected ? "bg-[#7289da]" : ""}`}>
+                                            {isSelected && <Check size={18} className='text-black' />}
                                         </div>
                                         <span className="font-medium text-sm">{tag.name}</span>
                                     </div>
@@ -173,7 +166,7 @@ const HostNewLobby = () => {
                     <div className="pt-4 flex justify-end">
                          <button 
                              onClick={handleCreateLobby}
-                             className="bg-[#7289da] text-gray-200 font-bold py-3 px-8 rounded-lg hover:bg-[#6c87ea] hover:scale-105 transition-all ">
+                             className="bg-[#5865F2] text-gray-200 font-bold py-3 px-8 rounded-lg hover:bg-[#4752c4] hover:scale-105 transition-all ">
                              Create Lobby
                          </button>
                     </div>

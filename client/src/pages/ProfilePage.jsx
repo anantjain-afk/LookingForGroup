@@ -15,9 +15,9 @@ export default function ProfilePage() {
         {/* Back Button */}
         <button 
           onClick={() => navigate(-1)} 
-          className="flex items-center gap-2 text-gray-400 hover:text-[#3cff00] transition mb-6 group"
+          className="flex items-center gap-2 text-gray-400 hover:text-[#5865F2] transition mb-6 group"
         >
-          <div className="p-2 rounded-full bg-slate-800 group-hover:bg-[#3cff00]/10 transition">
+          <div className="p-2 rounded-full bg-slate-800 group-hover:bg-[#5865F2]/10 transition">
              <ArrowLeft size={20} />
           </div>
           <span className="font-medium">Back</span>
@@ -35,7 +35,7 @@ export default function ProfilePage() {
             {/* Avatar & User Info - Overlapping Banner */}
             <div className="absolute -bottom-16 left-10 md:left-16 flex items-end gap-6">
                 {/* Avatar Circle with Neon Border */}
-                <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-slate-800 border-4 border-[#0a0a0a] ring-2 ring-[#3cff00] shadow-2xl overflow-hidden relative z-10">
+                <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-slate-800 border-4 border-[#0a0a0a] ring-2 ring-[#5865F2] shadow-2xl overflow-hidden relative z-10">
                      <div className="w-full h-full bg-slate-700 flex items-center justify-center text-4xl text-gray-500">
                         {/* Placeholder for Avatar Image */}
                         <span className="sr-only">Avatar</span>
@@ -53,7 +53,7 @@ export default function ProfilePage() {
                             <span className="text-orange-500 font-bold text-sm md:text-base">1540 Karma</span>
                         </div>
 
-                        <span className="bg-[#3cff00]/20 text-[#3cff00] text-xs font-bold px-2 py-1 rounded uppercase tracking-wider border border-[#3cff00]/30 hidden md:block">
+                        <span className="bg-[#5865F2]/20 text-[#5865F2] text-xs font-bold px-2 py-1 rounded uppercase tracking-wider border border-[#5865F2]/30 hidden md:block">
                             Friends
                         </span>
                     </div>

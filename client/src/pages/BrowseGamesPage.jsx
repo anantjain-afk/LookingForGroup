@@ -14,7 +14,7 @@ const fetchGames = async (params) => {
 
 // Reusable Game Card Component
 const GameCard = ({ game, onClick }) => (
-    <div onClick={onClick} className="group relative bg-[#151515] rounded-l overflow-hidden cursor-pointer hover:scale-105 transition-all duration-300 border border-transparent hover:border-[#3cff00] hover:shadow-[0_0_15px_rgba(60,255,0,0.2)] aspect-[2/3]">
+    <div onClick={onClick} className="group relative bg-[#151515] rounded-l overflow-hidden cursor-pointer hover:scale-105 transition-all duration-300 border border-transparent hover:border-[#5865F2] hover:shadow-[0_0_15px_rgba(60,255,0,0.2)] aspect-[2/3]">
         <img 
             src={game.cover || "https://placehold.co/300x400/1e293b/475569?text=No+Cover"} 
             alt={game.name} 
@@ -23,8 +23,8 @@ const GameCard = ({ game, onClick }) => (
         />
         <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity p-4">
              <h3 className="text-white font-bold text-center mb-4">{game.name}</h3>
-             <button className="bg-[#3cff00] text-black font-bold py-2 px-6 rounded-full hover:bg-[#32d500] transition transform hover:scale-105 shadow-[0_0_10px_rgba(60,255,0,0.4)]">
-                Find Group
+             <button className="bg-emerald-500 text-black font-bold py-2 px-6 rounded-full hover:bg-emerald-600 transition transform hover:scale-105">
+                Find Lobbies
              </button>
         </div>
         
@@ -40,7 +40,7 @@ const GameSection = ({ title, games, isLoading, onGameClick }) => {
     if (isLoading) {
         return (
             <div className="space-y-4">
-                <h2 className="text-xl font-bold text-white pl-2 border-l-4 border-[#3cff00]">{title}</h2>
+                <h2 className="text-xl font-bold text-white pl-2 border-l-4 border-[#5865F2]">{title}</h2>
                 <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
                     {[...Array(5)].map((_, i) => (
                         <div key={i} className="min-w-[160px] md:min-w-[200px] aspect-[2/3] bg-slate-800 rounded-xl animate-pulse"></div>
@@ -56,7 +56,7 @@ const GameSection = ({ title, games, isLoading, onGameClick }) => {
         <div className="space-y-4">
             <div className="flex items-center gap-3">
                  <h2 className="text-2xl font-bold text-white">{title}</h2>
-                 <div className="h-[2px] w-12 bg-[#3cff00] rounded-full"></div>
+                 <div className="h-[2px] w-12 bg-emerald-500 rounded-full"></div>
             </div>
             
             <div className="flex gap-4 overflow-x-auto pb-6 scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent px-1">
@@ -106,13 +106,13 @@ export default function BrowseGamesPage() {
                 {/* 1. Header & Search */}
                 <div className="flex flex-col items-center space-y-6">
                     <h1 className="text-4xl md:text-5xl font-bold text-center">
-                        Browse <span className="text-[#3cff00]">Games</span>
+                        Browse <span className="text-[#5865F2]">Games</span>
                     </h1>
                     
                     <div className="relative w-full max-w-2xl group">
-                         <div className="absolute inset-0 bg-[#3cff00]/20 rounded-full blur-xl group-hover:bg-[#3cff00]/30 transition duration-500"></div>
-                         <div className="relative flex items-center bg-[#151515] border border-gray-800 rounded-full p-2 focus-within:border-[#3cff00] focus-within:shadow-[0_0_15px_rgba(60,255,0,0.3)] transition-all">
-                            <Search className="ml-4 text-gray-400 group-focus-within:text-[#3cff00] transition" size={24} />
+                         <div className="absolute inset-0 bg-[#5865F2]/20 rounded-full blur-xl group-hover:bg-[#5865F2]/30 transition duration-500"></div>
+                         <div className="relative flex items-center bg-[#151515] border border-gray-800 rounded-full p-2 focus-within:border-[#5865F2] transition-all">
+                            <Search className="ml-4 text-gray-400 group-focus-within:text-[#5865F2] transition" size={24} />
                             <input 
                                 type="text" 
                                 placeholder="Search specifically..." 
