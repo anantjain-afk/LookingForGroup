@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Users, Trophy, Clock, Search } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -139,6 +139,7 @@ function FilterPill({ label, active = false }) {
 }
 
 function LobbyCard({ lobby }) {
+    const navigate = useNavigate();
     const isFull = lobby.participants.length >= lobby.maxPlayers;
     
     return (
@@ -190,7 +191,10 @@ function LobbyCard({ lobby }) {
 
                  {/* Right Action */}
                  <div className="flex items-center">
-                     <button className={cn(
+                     <button 
+                        onClick={() => !isFull && navigate(`/lobby/${lobby.id}`)}
+                        disabled={isFull}
+                        className={cn(
                          "w-full md:w-auto px-6 py-2.5 rounded-md font-bold text-sm transition-all shadow-md",
                          isFull 
                           ? "bg-gray-600 text-gray-300 cursor-not-allowed"
