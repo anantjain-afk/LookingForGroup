@@ -73,6 +73,7 @@ model LobbyParticipant {
   lobbyId  String
   lobby    Lobby    @relation(fields: [lobbyId], references: [id])
   role     String   @default("MEMBER") // HOST, MEMBER
+  isReady  Boolean  @default(false)
   joinedAt DateTime @default(now())
 
   @@unique([userId, lobbyId])

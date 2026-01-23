@@ -120,3 +120,32 @@ export const getAllLobbies = async (filters = {}) => {
     tags: lobby.tags.map(t => t.tag)
   }));
 };
+
+export const getLobbyById = async (id) => {
+    const lobby = await prisma.lobby.findUnique({
+        where: { id },
+        include: {
+            game: true,
+            tags: {
+                include: { tag: true }
+            },
+            host: {
+                select: { id: true, username: true, avatar: true, karmaScore: true }
+            },
+            participants: {
+                include: {
+                    user: {
+                        select: { id: true, username: true, avatar: true }
+                    }
+                }
+            }
+        }
+    });
+
+    if (!lobby) return null;
+
+    return {
+        ...lobby,
+        tags: lobby.tags.map(t => t.tag)
+    };
+};

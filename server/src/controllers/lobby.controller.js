@@ -19,3 +19,17 @@ export const getLobbies = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch lobbies" });
   }
 };
+
+export const getLobby = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const lobby = await lobbyService.getLobbyById(id);
+        if (!lobby) {
+            return res.status(404).json({ error: "Lobby not found" });
+        }
+        res.json(lobby);
+    } catch (error) {
+        console.error("Get Lobby Error:", error);
+        res.status(500).json({ error: "Failed to fetch lobby" });
+    }
+};

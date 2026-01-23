@@ -12,4 +12,7 @@ router.get('/', lobbyController.getLobbies);
 // POST /api/lobbies - Create Lobby (Protected)
 router.post('/', verifyToken, lobbyController.createLobby);
 
+// GET /api/lobbies/:id - Get Single Lobby (Public/Protected?)
+router.get('/:id', lobbyController.getLobby);
+
 export default router;

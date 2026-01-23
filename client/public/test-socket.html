@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Socket Test</title>
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <style>
+        body { font-family: monospace; background: #222; color: #eee; padding: 20px; }
+        .log { background: #111; padding: 10px; height: 300px; overflow-y: auto; border: 1px solid #444; margin-top: 10px; }
+        .controls { display: flex; gap: 10px; margin-bottom: 10px; }
+        input { background: #333; color: white; border: 1px solid #555; padding: 5px; }
+        button { cursor: pointer; padding: 5px 10px; }
+    </style>
+</head>
+<body>
+    <h1>Lobby Socket Test</h1>
+    
+    <div class="controls">
+        <input type="text" id="lobbyId" placeholder="Lobby ID (from DB/URL)">
+        <input type="text" id="userId" placeholder="User ID (simulated)">
+        <button onclick="joinLobby()">Join Lobby</button>
+        <button onclick="leaveLobby()">Leave Lobby</button>
+    </div>
+
+    <div class="controls">
+        <input type="text" id="msg" placeholder="Message">
+        <button onclick="sendMessage()">Send Chat</button>
+        <button onclick="toggleReady()">Toggle Ready</button>
+    </div>
+
+    <div id="logs" class="log"></div>
+
+    <script>
+        // Connect to server
+        const socket = io("http://localhost:3000", {
+            withCredentials: true
+        });
+
+        const logDiv = document.getElementById('logs');
+        function log(msg, data = '') {
+            const el = document.createElement('div');
+            el.innerHTML = `<span style="color: #888">[${new Date().toLocaleTimeString()}]</span> <strong style="color: #4f4">${msg}</strong> ${typeof data === 'object' ? JSON.stringify(data) : data}`;
+            logDiv.prepend(el);
+            console.log(msg, data);
+        }
+
+        socket.on("connect", () => log("Connected to Socket Server", socket.id));
+        socket.on("connect_error", (err) => log("Connect Error", err.message));
+        
+        socket.on("lobby_updated", (lobby) => {
+            log("EVENT: lobby_updated", lobby);
+        });
+
+        socket.on("new_message", (msg) => {
+            log("EVENT: new_message", msg);
+        });
+
+        socket.on("error", (err) => {
+            log("Error Event", err);
+        });
+
+        function joinLobby() {
+            const lobbyId = document.getElementById('lobbyId').value;
+            const userId = document.getElementById('userId').value; // In real app, this comes from auth
+            log("Emitting join_lobby...", { lobbyId, userId });
+            socket.emit("join_lobby", { lobbyId, userId });
+        }
+
+        function leaveLobby() {
+            log("Emitting leave_lobby...");
+            socket.emit("leave_lobby");
+        }
+
+        function sendMessage() {
+            const message = document.getElementById('msg').value;
+            log("Emitting send_message...", message);
+            socket.emit("send_message", { 
+                message, 
+                user: { username: "TestUser" } 
+            });
+        }
+
+        function toggleReady() {
+            log("Emitting toggle_ready...");
+            socket.emit("toggle_ready");
+        }
+
+    </script>
+</body>
+</html>

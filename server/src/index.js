@@ -2,13 +2,19 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import { createServer } from "http";
+import { Server } from "socket.io";
+
 import userRoutes from "./routes/userRoutes.js";
 import authRoutes from "./routes/auth.routes.js";
 import lobbyRoutes from "./routes/lobby.routes.js";
 import gameRoutes from "./routes/game.routes.js";
 import tagRoutes from "./routes/tag.routes.js";
 
+import { lobbyHandler } from "./socket/lobbyHandler.js";
+
 const app = express();
+const httpServer = createServer(app);
 const PORT = process.env.PORT || 5000;
 
 // Middleware
@@ -21,6 +27,21 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// Initialize Socket.io
+const io = new Server(httpServer, {
+  cors: {
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    credentials: true,
+  },
+});
+
+// Socket Handler
+const onConnection = (socket) => {
+  lobbyHandler(io, socket);
+};
+
+io.on("connection", onConnection);
 
 // Routes
 app.use("/api", userRoutes);
@@ -46,6 +67,6 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
