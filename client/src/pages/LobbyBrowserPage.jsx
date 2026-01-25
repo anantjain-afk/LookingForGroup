@@ -32,7 +32,7 @@ export default function LobbyBrowserPage() {
     queryFn: () => fetchGameLobbies(gameId),
   });
 
-  const { data: tags } = useQuery({
+  const { data: tags, isLoading: isLoadingTags } = useQuery({
     queryKey: ["tags"],
     queryFn: fetchTags,
   });
@@ -84,17 +84,30 @@ export default function LobbyBrowserPage() {
                </div>
 
                {/* Tags Row */}
-               <div className="space-y-3">
-                   <div className="flex flex-wrap gap-2">
-                        {/* Static Manual Filters as "Tags" for now to match UI request of rows */}
-                        {["Ranked", "Casual", "NA", "EU", "Mic Required"].map((tag) => (
-                             <FilterPill key={tag} label={tag} />
-                        ))}
-                        {/* Dynamic Tags from API */}
-                        {tags?.slice(0, 10).map((tag) => (
-                             <FilterPill key={tag.id} label={tag.name} />
-                        ))}
-                   </div>
+               <div className="space-y-6 pt-2">
+                   {isLoadingTags ? (
+                       <div className="text-gray-500 text-xs">Loading tags...</div>
+                   ) : tags && !Array.isArray(tags) ? (
+                       Object.entries(tags).map(([category, categoryTags]) => (
+                           <div key={category} className="space-y-2">
+                               <h4 className="text-[#96989d] text-[10px] font-bold uppercase tracking-widest pl-1">
+                                   {category}
+                               </h4>
+                               <div className="flex flex-wrap gap-2">
+                                   {categoryTags.map((tag) => (
+                                       <FilterPill key={tag.id} label={tag.name} />
+                                   ))}
+                               </div>
+                           </div>
+                       ))
+                   ) : (
+                       /* Fallback if tags is array or null */
+                       <div className="flex flex-wrap gap-2">
+                           {(Array.isArray(tags) ? tags : []).map((tag) => (
+                               <FilterPill key={tag.id} label={tag.name} />
+                           ))}
+                       </div>
+                   )}
                </div>
            </div>
         </div>
@@ -182,7 +195,7 @@ function LobbyCard({ lobby }) {
                      {/* Tags Row */}
                      <div className="flex flex-wrap gap-2 pt-1">
                          {lobby.tags.map((tag) => (
-                             <span key={tag.id} className="text-[10px] uppercase font-bold text-[#b9bbbe] bg-[#202225] border border-gray-700 px-2 py-0.5 rounded-sm">
+                             <span key={tag.id} className="text-[10px] uppercase font-bold text-[#eaecef] bg-[#3a6ab1] border border-gray-700 px-2 py-0.5 rounded-sm">
                                  {tag.name}
                              </span>
                          ))}

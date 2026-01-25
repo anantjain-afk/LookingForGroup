@@ -11,16 +11,7 @@ import { cn } from '../lib/utils';
 const fetchTags = async () => {
     const res = await fetch('/api/tags');
     const data = await res.json();
-    
-    // Flatten tags if they are grouped, or use as is
-    // The previous service implementation returned grouped tags { "Category": [...] }
-    // But the user modified service to return array? Let's handle both.
-    if (Array.isArray(data)) return data;
-    
-    // Check if it's an object with categories
-    const allTags = [];
-    Object.values(data).forEach(tags => allTags.push(...tags));
-    return allTags;
+    return data;
 };
 
 const HostNewLobby = () => {
@@ -138,27 +129,58 @@ const HostNewLobby = () => {
                             <span className="text-[#7289da] text-sm">({selectedTags.length} selected)</span>
                         </div>
 
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
-                            {tags.map((tag) => {
-                                const isSelected = selectedTags.includes(tag.id);
-                                return (
-                                    <div 
-                                        key={tag.id}
-                                        onClick={() => handleTagChange(tag.id)}
-                                        className={cn(
-                                            "flex items-center gap-2 px-4 py-2 rounded-lg  cursor-pointer group transition-all duration-200 select-none",
-                                            isSelected 
-                                                ? " border-[#7289da]  text-[#7289da]" 
-                                                : " border-[#7289da] text-gray-400 hover:border-[#7289da] hover:text-[#7289da]"
-                                        )}
-                                    >
-                                        <div className={`w-5 h-5  border-2 !border-[#7289da] ${isSelected ? "bg-[#7289da]" : ""}`}>
-                                            {isSelected && <Check size={18} className='text-black' />}
+                        <div className="space-y-6">
+                            {Array.isArray(tags) ? (
+                                // Fallback for flat array (if backend changes reverted)
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
+                                    {tags.map((tag) => {
+                                        const isSelected = selectedTags.includes(tag.id);
+                                        return (
+                                            <div 
+                                                key={tag.id}
+                                                onClick={() => handleTagChange(tag.id)}
+                                                className={cn(
+                                                    "flex items-center gap-2 px-4 py-2 rounded-lg  cursor-pointer group transition-all duration-200 select-none",
+                                                    isSelected 
+                                                        ? " border-[#7289da]  text-[#7289da]" 
+                                                        : " border-[#7289da] text-gray-400 hover:border-[#7289da] hover:text-[#7289da]"
+                                                )}
+                                            >
+                                                <div className={`w-5 h-5  border-2 !border-[#7289da] ${isSelected ? "bg-[#7289da]" : ""}`}>
+                                                    {isSelected && <Check size={18} className='text-black' />}
+                                                </div>
+                                                <span className="font-medium text-sm">{tag.name}</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                // Render Categorized Tags
+                                Object.entries(tags).map(([category, categoryTags]) => (
+                                    <div key={category} className="space-y-3">
+                                        <h3 className="text-gray-500 text-xs font-bold uppercase tracking-wider pl-1">{category}</h3>
+                                        <div className="flex flex-wrap gap-2">
+                                            {categoryTags.map((tag) => {
+                                                const isSelected = selectedTags.includes(tag.id);
+                                                return (
+                                                    <div 
+                                                        key={tag.id}
+                                                        onClick={() => handleTagChange(tag.id)}
+                                                        className={cn(
+                                                            "flex items-center gap-2 px-3 py-1.5 rounded-full border cursor-pointer group transition-all duration-200 select-none text-sm",
+                                                            isSelected 
+                                                                ? "bg-[#7289da]/20 border-[#7289da] text-[#7289da]" 
+                                                                : "bg-[#2f3136] border-transparent text-gray-400 hover:text-white hover:bg-[#36393f]"
+                                                        )}
+                                                    >
+                                                        {tag.name}
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
-                                        <span className="font-medium text-sm">{tag.name}</span>
                                     </div>
-                                );
-                            })}
+                                ))
+                            )}
                         </div>
                     </div>
 

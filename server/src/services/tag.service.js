@@ -8,14 +8,14 @@ export const getAllTags = async () => {
   });
 
   // Group by category
-//   const groupedTags = tags.reduce((acc, tag) => {
-//     const category = tag.category || 'Other';
-//     if (!acc[category]) {
-//       acc[category] = [];
-//     }
-//     acc[category].push(tag);
-//     return acc;
-//   }, {});
+  const groupedTags = tags.reduce((acc, tag) => {
+    const category = tag.category || 'Other';
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(tag);
+    return acc;
+  }, {});
 
-  return tags;
+  return groupedTags;
 };

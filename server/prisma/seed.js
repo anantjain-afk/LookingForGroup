@@ -26,24 +26,49 @@ async function main() {
   }
 
   // --- Seed Tags ---
+  // Wipe existing tags (must clear LobbyTag first due to FK constraints)
+  await prisma.lobbyTag.deleteMany({});
+  await prisma.tag.deleteMany({});
+  
   const tags = [
-    // Vibe
-    { name: 'Chill', category: 'Vibe' },
-    { name: 'No Toxic', category: 'Vibe' },
-    { name: 'Serious', category: 'Vibe' },
-    { name: 'Friendly', category: 'Vibe' },
-    
-    // Mode
-    { name: 'Ranked', category: 'Mode' },
-    { name: 'Unrated', category: 'Mode' },
-    { name: 'Custom', category: 'Mode' },
-    { name: 'Tournament', category: 'Mode' },
+    // Communication & Setup
+    { name: 'Mic Required', category: 'Communication' },
+    { name: 'Mic Optional', category: 'Communication' },
+    { name: 'Text Chat Only', category: 'Communication' },
+    { name: 'No Background Noises', category: 'Communication' },
+    { name: 'Voice Chat (Discord)', category: 'Communication' },
 
-    // Requirements
-    { name: 'Mic On', category: 'Requirement' },
-    { name: '18+', category: 'Requirement' },
-    { name: 'Newbies Welcome', category: 'Requirement' },
-    { name: 'Veterans Only', category: 'Requirement' },
+    // Playstyle & Intensity
+    { name: 'Chill/Casual', category: 'Vibe' },
+    { name: 'TryHard', category: 'Vibe' },
+    { name: 'Meme/Troll Friendly', category: 'Vibe' },
+    { name: 'Learning', category: 'Vibe' },
+    { name: 'Carrying', category: 'Vibe' },
+    { name: 'Need Carry', category: 'Vibe' },
+    { name: 'Competitive', category: 'Vibe' },
+    { name: 'Speedrun', category: 'Vibe' },
+    { name: 'Achievement / Trophy Hunting', category: 'Vibe' },
+
+    // Skill Level & Experience
+    { name: 'Beginner Friendly', category: 'Skill Level' },
+    { name: 'Intermediate', category: 'Skill Level' },
+    { name: 'Advanced', category: 'Skill Level' },
+    { name: 'Learning Together', category: 'Skill Level' },
+    { name: 'No Beginner', category: 'Skill Level' },
+    { name: 'Coaching Available', category: 'Skill Level' },
+
+    // Behavior & Attitude
+    { name: 'No swearing', category: 'Behavior' },
+    { name: 'Swearing allowed', category: 'Behavior' },
+    { name: 'No Rage', category: 'Behavior' },
+    { name: 'Team-Oriented', category: 'Behavior' },
+    { name: 'Solo-Friendly', category: 'Behavior' },
+
+    // Time & Commitment
+    { name: 'Short Session', category: 'Commitment' },
+    { name: 'Long Session', category: 'Commitment' },
+    { name: 'Daily Grind', category: 'Commitment' },
+    { name: 'One Match Only', category: 'Commitment' },
   ];
 
   for (const t of tags) {
