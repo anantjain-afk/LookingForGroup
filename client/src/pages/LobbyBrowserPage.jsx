@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Users, Trophy, Clock, Search } from "lucide-react";
+import { Users, Trophy, Clock, Search, X } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { apiGet } from "../api/client";
 import { cn } from "../lib/utils";
@@ -10,8 +11,12 @@ const fetchGameDetails = async (gameId) => {
   return await apiGet(`/api/games/${gameId}`);
 };
 
-const fetchGameLobbies = async (gameId) => {
-  return await apiGet(`/api/games/${gameId}/lobbies`);
+const fetchGameLobbies = async (gameId, tagIds) => {
+  let url = `/api/games/${gameId}/lobbies`;
+  if (tagIds && tagIds.length > 0) {
+      url += `?tags=${tagIds.join(',')}`;
+  }
+  return await apiGet(url);
 };
 
 const fetchTags = async () => {
@@ -20,6 +25,7 @@ const fetchTags = async () => {
 
 export default function LobbyBrowserPage() {
   const { gameId } = useParams();
+  const [selectedTagIds, setSelectedTagIds] = useState([]);
 
   // Queries
   const { data: game, isLoading: loadingGame } = useQuery({
@@ -28,14 +34,23 @@ export default function LobbyBrowserPage() {
   });
 
   const { data: lobbies, isLoading: loadingLobbies } = useQuery({
-    queryKey: ["lobbies", gameId],
-    queryFn: () => fetchGameLobbies(gameId),
+    queryKey: ["lobbies", gameId, selectedTagIds], // Include selectedTagIds in queryKey
+    queryFn: () => fetchGameLobbies(gameId, selectedTagIds),
   });
 
   const { data: tags, isLoading: isLoadingTags } = useQuery({
     queryKey: ["tags"],
     queryFn: fetchTags,
   });
+
+  // Handlers
+  const toggleTag = (tagId) => {
+      setSelectedTagIds(prev => 
+          prev.includes(tagId) ? prev.filter(id => id !== tagId) : [...prev, tagId]
+      );
+  };
+
+  const clearFilters = () => setSelectedTagIds([]);
 
   // Derived state
   const activeLobbyCount = lobbies?.length || 0;
@@ -57,13 +72,13 @@ export default function LobbyBrowserPage() {
           className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
           style={{ backgroundImage: `url(${game.cover || '/placeholder-game.jpg'})` }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#1e2124] via-[#1e2124]/60 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-[#1e2124] via-[#1e2124]/60 to-transparent" />
         
         <div className="absolute bottom-0 left-0 w-full p-8 pb-10 max-w-7xl mx-auto">
           <h1 className="text-5xl md:text-6xl font-black text-white tracking-widest uppercase drop-shadow-2xl">
             {game.name}
           </h1>
-          <p className="text-gray-3000 font-medium text-lg mt-2 text-emerald-500 flex items-center gap-2">
+          <p className="font-medium text-lg mt-2 text-emerald-500 flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
             {activeLobbyCount} Active Lobbies
           </p>
@@ -80,7 +95,14 @@ export default function LobbyBrowserPage() {
                    <h3 className="text-[#dbdee1] font-bold uppercase text-xs tracking-wider flex items-center gap-2">
                        <Search size={14} /> Find a Lobby
                    </h3>
-                   <span className="text-gray-500 text-xs">Filtering coming soon</span>
+                   {selectedTagIds.length > 0 && (
+                       <button 
+                           onClick={clearFilters}
+                           className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 font-bold transition-colors"
+                       >
+                           <X size={12} /> Clear Filters
+                       </button>
+                   )}
                </div>
 
                {/* Tags Row */}
@@ -95,7 +117,12 @@ export default function LobbyBrowserPage() {
                                </h4>
                                <div className="flex flex-wrap gap-2">
                                    {categoryTags.map((tag) => (
-                                       <FilterPill key={tag.id} label={tag.name} />
+                                       <FilterPill 
+                                            key={tag.id} 
+                                            label={tag.name} 
+                                            active={selectedTagIds.includes(tag.id)}
+                                            onClick={() => toggleTag(tag.id)}
+                                       />
                                    ))}
                                </div>
                            </div>
@@ -104,7 +131,12 @@ export default function LobbyBrowserPage() {
                        /* Fallback if tags is array or null */
                        <div className="flex flex-wrap gap-2">
                            {(Array.isArray(tags) ? tags : []).map((tag) => (
-                               <FilterPill key={tag.id} label={tag.name} />
+                               <FilterPill 
+                                    key={tag.id} 
+                                    label={tag.name} 
+                                    active={selectedTagIds.includes(tag.id)}
+                                    onClick={() => toggleTag(tag.id)}
+                               />
                            ))}
                        </div>
                    )}
@@ -119,8 +151,19 @@ export default function LobbyBrowserPage() {
              ) : activeLobbyCount === 0 ? (
                  <div className="flex flex-col items-center justify-center py-20 text-center bg-[#282b30] rounded-xl border border-dashed border-gray-700">
                      <Users size={48} className="text-gray-600 mb-4" />
-                     <h3 className="text-xl font-bold text-gray-300">No Lobbies Found</h3>
-                     <p className="text-gray-500 mt-2">Be the first to host a lobby for {game.name}!</p>
+                     <h3 className="text-xl font-bold text-gray-300">
+                         {selectedTagIds.length > 0 ? "No Matches Found" : "No Lobbies Found"}
+                     </h3>
+                     <p className="text-gray-500 mt-2">
+                         {selectedTagIds.length > 0 
+                            ? "No lobbies match these specific filters. Try removing some tags!" 
+                            : `Be the first to host a lobby for ${game.name}!`}
+                     </p>
+                     {selectedTagIds.length > 0 && (
+                         <button onClick={clearFilters} className="mt-4 text-sm text-[#7289da] hover:underline">
+                             Clear all filters
+                         </button>
+                     )}
                  </div>
              ) : (
                  lobbies.map((lobby) => (
@@ -136,13 +179,14 @@ export default function LobbyBrowserPage() {
 
 // Sub-components
 
-function FilterPill({ label, active = false }) {
+function FilterPill({ label, active = false, onClick }) {
     return (
         <button 
+           onClick={onClick}
            className={cn(
                "px-3 py-1.5 rounded text-xs font-semibold transition-all shadow-sm border",
                active 
-                ? "bg-[#7289da] text-white border-[#7289da]" 
+                ? "bg-[#5865F2] text-white border-[#5865F2] shadow-[0_0_10px_rgba(88,101,242,0.4)]" 
                 : "bg-[#36393f] text-gray-400 border-transparent hover:bg-[#424549] hover:text-gray-200"
            )}
         >

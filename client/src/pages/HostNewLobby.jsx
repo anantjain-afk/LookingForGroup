@@ -4,7 +4,7 @@ import { useToast } from '../components/ui/toast';
 import { apiPost } from '../api/client';
 import { Check } from 'lucide-react';
 import GameSearch from '../features/lobby/gameSearch';
-import { Gamepad2, Hash, AlignLeft, Tag } from 'lucide-react';
+import { Gamepad2, Hash, AlignLeft, Tag, Users } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 // Tag Fetcher
@@ -22,7 +22,8 @@ const HostNewLobby = () => {
     const [selectedGame, setSelectedGame] = useState(null);
     const [formData, setFormData] = useState({
         title: '',
-        description: ''
+        description: '',
+        maxPlayers: 5
     });
 
     useEffect(() => {
@@ -55,7 +56,7 @@ const HostNewLobby = () => {
                 title: formData.title,
                 description: formData.description,
                 tags: selectedTags,
-                maxPlayers: 5 // Default for now
+                maxPlayers: formData.maxPlayers
             };
             
             await apiPost('/api/lobbies', payload);
@@ -106,18 +107,37 @@ const HostNewLobby = () => {
                         />
                     </div>
 
-                    {/* 3. Description */}
-                    <div className="space-y-3">
-                        <label className="flex items-center gap-2 text-[#7289da] font-semibold text-sm uppercase tracking-wide">
-                            <AlignLeft size={18} /> Description
-                        </label>
-                        <textarea 
-                            rows={3}
-                            placeholder="Tell potential teammates what you're looking for..." 
-                            className="w-full bg-[#424549] border border-[#7289da] rounded-lg px-4 py-3 text-white placeholder:text-gray-400 focus:outline-none focus:border-[#7289da] focus:ring-1 focus:ring-[#7289da] transition-all resize-none"
-                            value={formData.description}
-                            onChange={(e) => setFormData({...formData, description: e.target.value})}
-                        />
+                    {/* 3. Description & Max Players Row */ }
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {/* Description */}
+                        <div className="md:col-span-2 space-y-3">
+                            <label className="flex items-center gap-2 text-[#7289da] font-semibold text-sm uppercase tracking-wide">
+                                <AlignLeft size={18} /> Description
+                            </label>
+                            <textarea 
+                                rows={3}
+                                placeholder="Tell potential teammates what you're looking for..." 
+                                className="w-full bg-[#424549] border border-[#7289da] rounded-lg px-4 py-3 text-white placeholder:text-gray-400 focus:outline-none focus:border-[#7289da] focus:ring-1 focus:ring-[#7289da] transition-all resize-none"
+                                value={formData.description}
+                                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                            />
+                        </div>
+
+                        {/* Max Players */}
+                        <div className="space-y-3">
+                             <label className="flex items-center gap-2 text-[#7289da] font-semibold text-sm uppercase tracking-wide">
+                                 <Users size={18} /> Max Players
+                             </label>
+                             <select 
+                                 className="w-full bg-[#424549] border border-[#7289da] rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#7289da] focus:ring-1 focus:ring-[#7289da] appearance-none"
+                                 value={formData.maxPlayers}
+                                 onChange={(e) => setFormData({...formData, maxPlayers: parseInt(e.target.value)})}
+                             >
+                                 {[2, 3, 4, 5, 6, 8, 10, 20].map(num => (
+                                     <option key={num} value={num}>{num} Players</option>
+                                 ))}
+                             </select>
+                        </div>
                     </div>
 
                     {/* 4. Tags */}

@@ -67,12 +67,24 @@ export const createLobby = async (data, hostId) => {
 };
 
 export const getAllLobbies = async (filters = {}) => {
-  const { gameId, ...otherFilters } = filters;
+  const { gameId, tags, ...otherFilters } = filters;
   
   const where = {
      status: 'OPEN',
      ...otherFilters
   };
+
+  // Filter by Tags (if provided)
+  if (tags) {
+      const tagIds = tags.split(',').filter(id => id.trim() !== '');
+      if (tagIds.length > 0) {
+          where.tags = {
+              some: {
+                  tagId: { in: tagIds }
+              }
+          };
+      }
+  }
 
   if (gameId) {
       // If It's a number (IGDB ID), find the local ID first

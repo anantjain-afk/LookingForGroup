@@ -49,7 +49,7 @@ export const getGameLobbies = async (req, res) => {
     const { gameId } = req.params;
     try {
         // Reuse lobby service with filter
-        const lobbies = await lobbyService.getAllLobbies({ gameId });
+        const lobbies = await lobbyService.getAllLobbies({ gameId, ...req.query });
         res.json(lobbies);
     } catch (error) {
         console.error("Get Game Lobbies Error:", error);
