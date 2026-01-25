@@ -15,4 +15,7 @@ router.post('/', verifyToken, lobbyController.createLobby);
 // GET /api/lobbies/:id - Get Single Lobby (Public/Protected?)
 router.get('/:id', lobbyController.getLobby);
 
+// PATCH /api/lobbies/:id/close - Close Lobby (Protected)
+router.patch('/:id/close', verifyToken, lobbyController.closeLobby);
+
 export default router;

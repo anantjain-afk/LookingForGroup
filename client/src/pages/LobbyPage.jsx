@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
-import { Mic, Headphones, Settings, Send, User, ShieldAlert, LogOut, Copy, RefreshCw } from "lucide-react";
+import { Mic, Headphones, Settings, Send, User, ShieldAlert, LogOut, Copy, RefreshCw, XCircle } from "lucide-react";
 
 import { useUserStore } from "../store/useUserStore";
 import { useToast } from "../components/ui/toast";
+import { apiPatch } from "../api/client"; 
 import { cn } from "../lib/utils";
+import ConfirmationModal from "../components/ConfirmationModal";
 
 export default function LobbyPage() {
   const { lobbyId } = useParams();
@@ -18,6 +20,9 @@ export default function LobbyPage() {
   const [lobby, setLobby] = useState(null);
   const [messages, setMessages] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
+  
+  // UI State
+  const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
   
   // Inputs
   const [messageInput, setMessageInput] = useState("");
@@ -68,6 +73,11 @@ export default function LobbyPage() {
         }
     });
 
+    newSocket.on("LOBBY_DISBANDED", () => {
+        toast({ title: "Lobby Closed", description: "The host has closed the lobby.", variant: "default" });
+        navigate("/browse");
+    });
+
     newSocket.on("error", (err) => {
         toast({ title: "Error", description: err.message, variant: "destructive" });
         // If "Lobby not found" or "Lobby is full" on join, maybe redirect?
@@ -82,6 +92,7 @@ export default function LobbyPage() {
         newSocket.off("lobby_updated");
         newSocket.off("new_message");
         newSocket.off("player_kicked");
+        newSocket.off("LOBBY_DISBANDED");
         newSocket.off("error");
         newSocket.disconnect();
     };
@@ -121,6 +132,16 @@ export default function LobbyPage() {
       socket.emit("kick_player", { targetUserId });
   };
 
+  const handleCloseLobby = async () => {
+      try {
+          await apiPatch(`/api/lobbies/${lobbyId}/close`);
+          // Note: Navigation handled by socket event LOBBY_DISBANDED
+      } catch (err) {
+          console.error(err);
+          toast({ title: "Error", description: "Failed to close lobby", variant: "destructive" });
+      }
+  };
+
 
   // --- Render Helpers ---
 
@@ -146,6 +167,17 @@ export default function LobbyPage() {
   return (
     <div className="h-screen flex flex-col bg-[#313338] text-gray-100 font-sans overflow-hidden">
       
+      {/* Confirmation Modal */}
+      <ConfirmationModal 
+          isOpen={isCloseModalOpen}
+          onClose={() => setIsCloseModalOpen(false)}
+          onConfirm={handleCloseLobby}
+          title="Close Lobby?"
+          description="Are you sure you want to close this lobby? All participants will be removed and the lobby will be deleted."
+          confirmText="Yes, Close Lobby"
+          cancelText="Cancel"
+      />
+
       {/* MAIN CONTENT AREA (Chat + Sidebar) */}
       <div className="flex flex-1 overflow-hidden">
         
@@ -369,13 +401,25 @@ export default function LobbyPage() {
               >
                   {amIReady ? "CANCEL READY" : "READY UP"}
               </button>
-              <button 
-                  onClick={handleLeaveLobby}
-                  className="border border-red-500/50 text-red-400 hover:bg-red-500/10 font-bold py-2.5 px-4 rounded transition flex items-center gap-2"
-              >
-                  <LogOut size={18} />
-                  <span className="hidden md:inline">Leave</span>
-              </button>
+              
+              {/* Close Lobby (Host) or Leave (Member) */}
+              {isHost ? (
+                  <button 
+                      onClick={() => setIsCloseModalOpen(true)}
+                      className="border border-red-500 bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white font-bold py-2.5 px-4 rounded transition flex items-center gap-2"
+                  >
+                      <XCircle size={18} />
+                      <span className="hidden md:inline">Close Lobby</span>
+                  </button>
+              ) : (
+                  <button 
+                      onClick={handleLeaveLobby}
+                      className="border border-red-500/50 text-red-400 hover:bg-red-500/10 font-bold py-2.5 px-4 rounded transition flex items-center gap-2"
+                  >
+                      <LogOut size={18} />
+                      <span className="hidden md:inline">Leave</span>
+                  </button>
+              )}
           </div>
       </div>
 

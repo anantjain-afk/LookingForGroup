@@ -58,6 +58,16 @@ export const apiPut = (endpoint, data, options = {}) =>
   apiFetch(endpoint, { method: "PUT", body: JSON.stringify(data), ...options });
 
 /**
+ * PATCH request helper
+ */
+export const apiPatch = (endpoint, data, options = {}) =>
+  apiFetch(endpoint, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+    ...options,
+  });
+
+/**
  * DELETE request helper
  */
 export const apiDelete = (endpoint, options = {}) =>

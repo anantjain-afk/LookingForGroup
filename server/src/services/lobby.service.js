@@ -149,3 +149,17 @@ export const getLobbyById = async (id) => {
         tags: lobby.tags.map(t => t.tag)
     };
 };
+
+export const closeLobby = async (lobbyId, userId) => {
+    const lobby = await prisma.lobby.findUnique({
+        where: { id: lobbyId }
+    });
+
+    if (!lobby) throw new Error("Lobby not found");
+    if (lobby.hostId !== userId) throw new Error("Unauthorized");
+
+    return await prisma.lobby.update({
+        where: { id: lobbyId },
+        data: { status: 'CLOSED' }
+    });
+};

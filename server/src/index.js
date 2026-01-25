@@ -36,6 +36,9 @@ const io = new Server(httpServer, {
   },
 });
 
+// Make io accessible in routes
+app.set("io", io);
+
 // Socket Handler
 const onConnection = (socket) => {
   lobbyHandler(io, socket);
