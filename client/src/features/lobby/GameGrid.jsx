@@ -1,7 +1,9 @@
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 
 export default function GameGrid() {
+  const navigate = useNavigate();
   const { data: games = [], isLoading, isError } = useQuery({
     queryKey: ['popularGames'],
     queryFn: async () => {
@@ -41,6 +43,7 @@ export default function GameGrid() {
         {gameList.map((game) => (
           <div 
             key={game.id} 
+            onClick={() => navigate(`/game/${game.id}`)}
             className="group relative bg-[#151515] rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-all duration-300 border border-transparent hover:border-[#5865F2] hover:shadow-[0_0_15px_rgba(60,255,0,0.2)]"
           >
             {/* Image Container */}

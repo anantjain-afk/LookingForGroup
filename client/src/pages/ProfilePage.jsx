@@ -1,9 +1,97 @@
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Flame } from "lucide-react";
-
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, Flame, Pencil, Save, X } from "lucide-react";
+import { useUserStore } from "../store/useUserStore";
+import { apiPut, apiGet } from "../api/client";
+import { useToast } from "../components/ui/toast";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
+  const { username: urlUsername } = useParams();
+  const { user: currentUser, updateUser } = useUserStore();
+  const { toast } = useToast();
+  
+  const [activeUser, setActiveUser] = useState(null); // The user being displayed
+  const [loading, setLoading] = useState(true);
+  
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState({
+      username: "",
+      bio: ""
+  });
+
+  const isOwnProfile = !urlUsername || (currentUser && currentUser.username === urlUsername);
+
+  // Fetch Logic
+  useEffect(() => {
+    const fetchProfile = async () => {
+        setLoading(true);
+        try {
+            if (isOwnProfile) {
+                // If viewing own profile or no param, use store data
+                if (currentUser) {
+                    setActiveUser(currentUser);
+                } else {
+                    // Not logged in or waiting for store
+                    // (Handled by loading state of store usually, but let's wait)
+                }
+            } else {
+                // Public fetch
+                const data = await apiGet(`/api/users/profile/${urlUsername}`);
+                setActiveUser(data);
+            }
+        } catch (error) {
+            console.error("Failed to fetch profile:", error);
+            toast({ title: "Error", description: "User not found", variant: "destructive" });
+            navigate("/browse"); // Redirect on error
+        } finally {
+            if (currentUser || !isOwnProfile) setLoading(false);
+        }
+    };
+
+    if (currentUser || !isOwnProfile) { // Only fetch if we have auth state or it's public
+        fetchProfile();
+    }
+  }, [urlUsername, currentUser, isOwnProfile, navigate, toast]);
+
+
+  // Initialize form data when entering edit mode or activeUser changes
+  useEffect(() => {
+      if (activeUser) {
+          setFormData({
+              username: activeUser.username,
+              bio: activeUser.bio || "I love playing games"
+          });
+      }
+  }, [activeUser]);
+
+  const handleSave = async () => {
+      try {
+          const updatedUser = await apiPut("/api/me", formData);
+          
+          updateUser(updatedUser);
+          setActiveUser(updatedUser); // Update local display
+          setIsEditing(false);
+          toast({ title: "Success", description: "Profile updated successfully!" });
+      } catch (error) {
+          console.error(error);
+          toast({ title: "Error", description: error.message || "Failed to update profile", variant: "destructive" });
+      }
+  };
+
+  const handleCancel = () => {
+      if (activeUser) {
+          setFormData({
+              username: activeUser.username,
+              bio: activeUser.bio || "I love playing games"
+          });
+      }
+      setIsEditing(false);
+  };
+
+  if (loading || !activeUser) {
+       return <div className="h-screen bg-[#0a0a0a] flex items-center justify-center text-white">Loading Profile...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
@@ -30,35 +118,73 @@ export default function ProfilePage() {
                  {/* Optional: Add an actual image or gradient overlay */}
                  <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80')] bg-cover bg-center opacity-40"></div>
                  <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-transparent"></div>
+                 
+                 {/* Edit Profile Button (Top Right of Banner) */}
+                 {isOwnProfile && (
+                     !isEditing ? (
+                         <button 
+                             onClick={() => setIsEditing(true)}
+                             className="absolute top-6 right-6 bg-black/50 hover:bg-black/70 backdrop-blur-md text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition border border-white/10"
+                         >
+                             <Pencil size={16} /> Edit Profile
+                         </button>
+                     ) : (
+                         <div className="absolute top-6 right-6 flex items-center gap-2">
+                             <button 
+                                 onClick={handleSave}
+                                 className="bg-[#5865F2] hover:bg-[#4752c4] text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition shadow-lg"
+                             >
+                                 <Save size={16} /> Save Changes
+                             </button>
+                             <button 
+                                 onClick={handleCancel}
+                                 className="bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-500/30 px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition"
+                             >
+                                 <X size={16} /> Cancel
+                             </button>
+                         </div>
+                     )
+                 )}
             </div>
 
             {/* Avatar & User Info - Overlapping Banner */}
             <div className="absolute -bottom-16 left-10 md:left-16 flex items-end gap-6">
                 {/* Avatar Circle with Neon Border */}
                 <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-slate-800 border-4 border-[#0a0a0a] ring-2 ring-[#5865F2] shadow-2xl overflow-hidden relative z-10">
-                     <div className="w-full h-full bg-slate-700 flex items-center justify-center text-4xl text-gray-500">
-                        {/* Placeholder for Avatar Image */}
-                        <span className="sr-only">Avatar</span>
+                     <div className="w-full h-full bg-slate-700 flex items-center justify-center text-4xl text-gray-500 overflow-hidden">
+                        {activeUser.avatar ? <img src={activeUser.avatar} className="w-full h-full object-cover" /> : activeUser.username?.[0]?.toUpperCase()}
                      </div>
                 </div>
                 
                 {/* Name & Title */}
-                <div className="pb-2 md:pb-4 z-10">
-                    <div className="flex items-center gap-3">
-                        <h1 className="text-3xl md:text-5xl font-bold text-white">Aliah Pitts</h1>
+                <div className="pb-2 md:pb-4 z-10 flex-1 min-w-0">
+                    <div className="flex items-center gap-3 flex-wrap">
+                        {isEditing ? (
+                            <input 
+                                type="text"
+                                value={formData.username}
+                                onChange={(e) => setFormData({...formData, username: e.target.value})}
+                                className="bg-transparent border-b-2 border-[#5865F2] text-3xl md:text-5xl font-bold text-white focus:outline-none min-w-[200px]"
+                                maxLength={20}
+                            />
+                        ) : (
+                            <h1 className="text-3xl md:text-5xl font-bold text-white truncate">{activeUser.username}</h1>
+                        )}
                         
                         {/* Karma Score */}
-                        <div className="flex items-center gap-1 bg-orange-500/10 border border-orange-500/20 px-3 py-1 rounded-full">
+                        <div className="flex items-center gap-1 bg-orange-500/10 border border-orange-500/20 px-3 py-1 rounded-full shrink-0">
                             <Flame size={18} className="text-orange-500 fill-orange-500" />
-                            <span className="text-orange-500 font-bold text-sm md:text-base">1540 Karma</span>
+                            <span className="text-orange-500 font-bold text-sm md:text-base">{activeUser.karmaScore} Karma</span>
                         </div>
 
                         <span className="bg-[#5865F2]/20 text-[#5865F2] text-xs font-bold px-2 py-1 rounded uppercase tracking-wider border border-[#5865F2]/30 hidden md:block">
-                            Friends
+                            Member
                         </span>
                     </div>
-                    <p className="text-gray-400 font-medium">Playing <span className="text-white">APEX LEGENDS</span></p>
-                    <p className="text-xs text-gray-500 font-bold mt-1">LEVEL 154</p>
+                    {/* Hardcoded details for now */}
+                    <div className="mt-1">
+                        <p className="text-gray-400 font-medium text-sm">Joined {new Date(activeUser.createdAt).toLocaleDateString()}</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -70,9 +196,23 @@ export default function ProfilePage() {
             <div className="space-y-8">
                 {/* Bio */}
                 <div className="space-y-4">
-                    <p className="text-gray-300 leading-relaxed text-sm">
-                        I enjoy playing a variety of games! Make sure to add me so we can play together. I occasionally stream on Twitch some FPS games with friends.
-                    </p>
+                    {isEditing ? (
+                        <div className="space-y-2">
+                             <label className="text-xs uppercase text-gray-500 font-bold">About Me</label>
+                             <textarea 
+                                value={formData.bio}
+                                onChange={(e) => setFormData({...formData, bio: e.target.value})}
+                                rows={4}
+                                className="w-full bg-[#1e2124] border border-gray-700 rounded-lg p-3 text-white focus:border-[#5865F2] focus:outline-none resize-none"
+                                maxLength={200}
+                             />
+                             <p className="text-right text-xs text-gray-500">{formData.bio.length}/200</p>
+                        </div>
+                    ) : (
+                        <p className="text-gray-300 leading-relaxed text-sm">
+                            {activeUser.bio || "I love playing games"}
+                        </p>
+                    )}
                 </div>
 
                 {/* Social Links Placeholder */}

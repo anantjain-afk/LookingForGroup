@@ -127,10 +127,7 @@ export default function LandingPage() {
                 </div>
             ) : (
                 <div className="space-y-12">
-                     {/* Search - Keeping existing placeholder or componente */}
-                     <div className="max-w-md">
-                        <GameSearch /> 
-                     </div>
+
                      
                      {/* Popular Games Grid */}
                      <GameGrid />

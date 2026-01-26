@@ -8,6 +8,7 @@ import { useToast } from "../components/ui/toast";
 import { apiPatch } from "../api/client"; 
 import { cn } from "../lib/utils";
 import ConfirmationModal from "../components/ConfirmationModal";
+import UserProfileLink from "../components/UserProfileLink";
 
 export default function LobbyPage() {
   const { lobbyId } = useParams();
@@ -293,7 +294,7 @@ export default function LobbyPage() {
                               {/* Info */}
                               <div className="flex-1 min-w-0">
                                   <h4 className="font-semibold text-white text-sm truncate flex items-center gap-1">
-                                      {p.user?.username}
+                                      <UserProfileLink username={p.user?.username} className="text-white hover:text-[#5865F2]" />
                                       {isP_Host && <span className="text-[#e2b714]" title="Host"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" /></svg></span>}
                                   </h4>
                                   <p className="text-xs text-gray-400">{isP_Host ? "Lobby Host" : "Member"}</p>

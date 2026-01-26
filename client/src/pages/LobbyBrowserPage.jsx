@@ -5,6 +5,7 @@ import { Users, Trophy, Clock, Search, X } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { apiGet } from "../api/client";
 import { cn } from "../lib/utils";
+import UserProfileLink from "../components/UserProfileLink";
 
 // API Fetchers
 const fetchGameDetails = async (gameId) => {
@@ -209,8 +210,8 @@ function LobbyCard({ lobby }) {
                          <h3 className="text-lg font-bold text-white group-hover:text-[#7289da] transition-colors truncate">
                             {lobby.title}
                          </h3>
-                         <span className="text-xs font-medium text-gray-500 bg-[#202225] px-2 py-0.5 rounded">
-                             Hosted by {lobby.host?.username || "Unknown"}
+                         <span className="text-xs font-medium text-gray-500 bg-[#202225] px-2 py-0.5 rounded flex items-center gap-1">
+                             Hosted by <UserProfileLink username={lobby.host?.username} className="text-gray-400 hover:text-[#5865F2]" />
                          </span>
                      </div>
                      
