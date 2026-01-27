@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { useQuery, useQueries } from '@tanstack/react-query';
 import axios from 'axios';
 import { Search } from 'lucide-react';
-
+import { apiGet } from "../api/client";
 import { useNavigate } from "react-router-dom";
 
 // Helper to fetch games
 const fetchGames = async (params) => {
     const searchParams = new URLSearchParams(params);
-    const res = await axios.get(`/api/games?${searchParams.toString()}`);
-    return res.data;
+    const res = await apiGet(`/api/games?${searchParams.toString()}`);
+    return res;
 };
 
 // Reusable Game Card Component

@@ -1,14 +1,16 @@
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
+import { apiGet } from '../../api/client';
 
 export default function GameGrid() {
   const navigate = useNavigate();
   const { data: games = [], isLoading, isError } = useQuery({
     queryKey: ['popularGames'],
     queryFn: async () => {
-      const res = await axios.get('/api/games');
-      return res.data;
+      const res = await apiGet('/api/games');
+      console.log(res);
+      return res;
     }
   });
 

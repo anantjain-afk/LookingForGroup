@@ -13,7 +13,7 @@ export default function GameSearch({ onSelect }) {
     queryFn: async () => {
       if (!search || search.length < 2) return [];
       
-    const res = await axios.get(`/api/games?query=${search}`);
+    const res = await apiGet(`/api/games?query=${search}`);
     // console.log("Server Response:", res.data); 
 
       
