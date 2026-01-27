@@ -71,9 +71,23 @@ export default function LobbyPage() {
   }, [isConnected, joinVoice, cleanupVoice]);
 
   // Sync peers when lobby updates AND voice is ready
+  // Use a ref to track if we've already synced for the current participant list
+  const lastSyncedParticipants = useRef(null);
+  
   useEffect(() => {
-      if (voiceReady && lobby && lobby.participants) {
+      if (!voiceReady || !lobby || !lobby.participants) return;
+      
+      // Create a stable comparison string for participants
+      const currentParticipants = lobby.participants
+          .map(p => p.userId)
+          .sort()
+          .join(',');
+      
+      // Only sync if the participant list actually changed
+      if (lastSyncedParticipants.current !== currentParticipants) {
+          console.log("Syncing peers for participants:", currentParticipants);
           syncPeers(lobby.participants);
+          lastSyncedParticipants.current = currentParticipants;
       }
   }, [voiceReady, lobby, syncPeers]);
   // Socket Connection Effect

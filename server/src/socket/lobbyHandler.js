@@ -36,6 +36,15 @@ export const lobbyHandler = (io, socket) => {
 
         // Socket Join
         socket.join(`lobby_${lobbyId}`);
+        
+        // Remove user from previous socket instances (for reconnects)
+        const sockets = await io.in(`user_${userId}`).fetchSockets();
+        sockets.forEach(s => {
+            if (s.id !== socket.id) {
+                s.leave(`user_${userId}`);
+            }
+        });
+        
         socket.join(`user_${userId}`); // Join user-specific room for WebRTC signaling
         socket.data.userId = userId;
         socket.data.lobbyId = lobbyId;
