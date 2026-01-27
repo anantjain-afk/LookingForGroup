@@ -36,6 +36,7 @@ export const lobbyHandler = (io, socket) => {
 
         // Socket Join
         socket.join(`lobby_${lobbyId}`);
+        socket.join(`user_${userId}`); // Join user-specific room for WebRTC signaling
         socket.data.userId = userId;
         socket.data.lobbyId = lobbyId;
 
@@ -190,6 +191,15 @@ export const lobbyHandler = (io, socket) => {
            console.error("Update Credentials Error:", error);
            socket.emit("error", { message: "Failed to update credentials" });
        }
+  });
+
+  // VOICE SIGNALING (P2P)
+  socket.on("signal_voice", ({ targetId, signalData, senderId }) => {
+      // Emit to user-based room instead of socket ID
+      io.to(`user_${targetId}`).emit("signal_voice", {
+          signalData,
+          senderId
+      });
   });
 
 };

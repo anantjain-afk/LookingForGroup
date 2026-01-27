@@ -9,6 +9,7 @@ import { apiPatch } from "../api/client";
 import { cn } from "../lib/utils";
 import ConfirmationModal from "../components/ConfirmationModal";
 import UserProfileLink from "../components/UserProfileLink";
+import { useWebRTC } from "../hooks/useWebRTC";
 
 export default function LobbyPage() {
   const { lobbyId } = useParams();
@@ -37,7 +38,44 @@ export default function LobbyPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
   useEffect(scrollToBottom, [messages]);
+  useEffect(scrollToBottom, [messages]);
 
+  // Voice Chat Hook
+  const { 
+      joinVoice, 
+      cleanup: cleanupVoice, 
+      streams, 
+      isMuted, 
+      isDeafened, 
+      toggleMute, 
+      toggleDeafen, 
+      syncPeers 
+  } = useWebRTC(lobbyId, user?.id, socket);
+
+  // Track when voice is ready
+  const [voiceReady, setVoiceReady] = useState(false);
+
+  // Auto-join voice when connected
+  useEffect(() => {
+      if (isConnected) {
+          joinVoice().then(success => {
+              if (success) {
+                  setVoiceReady(true);
+              }
+          });
+      }
+      return () => {
+          cleanupVoice();
+          setVoiceReady(false);
+      };
+  }, [isConnected, joinVoice, cleanupVoice]);
+
+  // Sync peers when lobby updates AND voice is ready
+  useEffect(() => {
+      if (voiceReady && lobby && lobby.participants) {
+          syncPeers(lobby.participants);
+      }
+  }, [voiceReady, lobby, syncPeers]);
   // Socket Connection Effect
   useEffect(() => {
     if (!user || !lobbyId) return;
@@ -372,17 +410,59 @@ export default function LobbyPage() {
                </div>
                
                <div className="flex items-center gap-2">
-                   <button className="p-2 hover:bg-[#3f4147] rounded text-gray-300 hover:text-white transition-colors relative">
-                       <Mic size={20} />
+                   <button 
+                       onClick={toggleMute}
+                       className={cn(
+                           "p-2 rounded transition-colors relative",
+                           isMuted ? "text-red-400 hover:bg-red-500/10" : "text-white bg-green-500/10 hover:bg-green-500/20"
+                       )}
+                       title={isMuted ? "Unmute" : "Mute"}
+                   >
+                       <Mic size={20} className={cn(!isMuted && "fill-current")} />
+                       {isMuted && (
+                           <div className="absolute inset-0 flex items-center justify-center">
+                               <div className="w-full h-0.5 bg-red-400 rotate-45 transform scale-75"></div>
+                           </div>
+                       )}
                    </button>
-                   <button className="p-2 hover:bg-[#3f4147] rounded text-gray-300 hover:text-white transition-colors">
+                   <button 
+                       onClick={toggleDeafen}
+                       className={cn(
+                           "p-2 rounded transition-colors relative",
+                           isDeafened ? "text-red-400 hover:bg-red-500/10" : "text-gray-300 hover:text-white hover:bg-[#3f4147]"
+                       )}
+                        title={isDeafened ? "Undeafen" : "Deafen"}
+                   >
                        <Headphones size={20} />
+                       {isDeafened && (
+                           <div className="absolute inset-0 flex items-center justify-center">
+                               <div className="w-full h-0.5 bg-red-400 rotate-45 transform scale-75"></div>
+                           </div>
+                       )}
                    </button>
                    <button className="p-2 hover:bg-[#3f4147] rounded text-gray-300 hover:text-white transition-colors">
                        <Settings size={20} />
                    </button>
                </div>
           </div>
+          
+          {/* Hidden Audio Elements for Voice Chat */}
+          {streams.map(s => (
+              <audio 
+                  key={s.peerId} 
+                  ref={el => {
+                      if (el && el.srcObject !== s.stream) {
+                          el.srcObject = s.stream;
+                          // Explicitly play to bypass Chrome autoplay restrictions
+                          el.play().catch(err => {
+                              console.warn(`Audio playback failed for ${s.peerId}:`, err);
+                          });
+                      }
+                  }}
+                  autoPlay
+                  muted={isDeafened}
+              />
+          ))}
 
           {/* Center: Game Credentials */}
           <div className="hidden md:flex flex-1 max-w-md mx-6">
