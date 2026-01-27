@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Users, Trophy, Clock, Search, X } from "lucide-react";
+import { useUserStore } from "../store/useUserStore";
 import { formatDistanceToNow } from "date-fns";
 import { apiGet } from "../api/client";
 import { cn } from "../lib/utils";
@@ -198,7 +199,9 @@ function FilterPill({ label, active = false, onClick }) {
 
 function LobbyCard({ lobby }) {
     const navigate = useNavigate();
+    const { user } = useUserStore();
     const isFull = lobby.participants.length >= lobby.maxPlayers;
+    const isMe = user?.username === lobby.host?.username;
     
     return (
         <div className="group bg-[#282b30] hover:bg-[#32353b] border border-[#2f3136] hover:border-[#7289da] rounded-lg p-5 transition-all duration-200 shadow-lg relative overflow-hidden">
@@ -211,7 +214,7 @@ function LobbyCard({ lobby }) {
                             {lobby.title}
                          </h3>
                          <span className="text-xs font-medium text-gray-500 bg-[#202225] px-2 py-0.5 rounded flex items-center gap-1">
-                             Hosted by <UserProfileLink username={lobby.host?.username} className="text-gray-400 hover:text-[#5865F2]" />
+                             Hosted by <UserProfileLink username={lobby.host?.username} alias={isMe ? "You" : undefined} className="text-gray-400 hover:text-[#5865F2]" />
                          </span>
                      </div>
                      

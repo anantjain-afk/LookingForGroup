@@ -52,6 +52,7 @@ model Lobby {
   description String?
   status      String  @default("OPEN") // OPEN, FULL, IN_GAME
   maxPlayers  Int     @default(5)
+  credentials String?
 
   hostId String
   host   User   @relation("HostedLobbies", fields: [hostId], references: [id])

@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { cn } from "../lib/utils";
 
-export default function UserProfileLink({ username, className }) {
+export default function UserProfileLink({ username, alias, className }) {
     if (!username) return <span className="text-gray-500">Unknown</span>;
 
     return (
@@ -13,7 +13,7 @@ export default function UserProfileLink({ username, className }) {
             )}
             onClick={(e) => e.stopPropagation()} // Prevent triggering parent click events (like lobby card nav)
         >
-            {username}
+            {alias || username}
         </Link>
     );
 }

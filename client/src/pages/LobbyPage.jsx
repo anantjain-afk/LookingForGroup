@@ -59,8 +59,7 @@ export default function LobbyPage() {
 
     newSocket.on("lobby_updated", (updatedLobby) => {
         setLobby(updatedLobby);
-        // Pre-fill credentials if we are host or they are public? (Mock logic for now)
-        // setCredentials(updatedLobby?.credentials || "");
+        setCredentials(updatedLobby?.credentials || "");
     });
 
     newSocket.on("new_message", (msg) => {
@@ -141,6 +140,17 @@ export default function LobbyPage() {
           console.error(err);
           toast({ title: "Error", description: "Failed to close lobby", variant: "destructive" });
       }
+  };
+
+  const handleUpdateCredentials = () => {
+      if (!socket || !isHost) return;
+      socket.emit("update_credentials", { credentials });
+      toast({ title: "Saved", description: "Lobby credentials updated." });
+  };
+
+  const handleCopyCredentials = () => {
+      navigator.clipboard.writeText(credentials);
+      toast({ title: "Copied!", description: "Credentials copied to clipboard." });
   };
 
 
@@ -294,7 +304,11 @@ export default function LobbyPage() {
                               {/* Info */}
                               <div className="flex-1 min-w-0">
                                   <h4 className="font-semibold text-white text-sm truncate flex items-center gap-1">
-                                      <UserProfileLink username={p.user?.username} className="text-white hover:text-[#5865F2]" />
+                                      <UserProfileLink 
+                                        username={p.user?.username} 
+                                        alias={p.user?.username === user?.username ? "You" : undefined}
+                                        className="text-white hover:text-[#5865F2]" 
+                                      />
                                       {isP_Host && <span className="text-[#e2b714]" title="Host"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" /></svg></span>}
                                   </h4>
                                   <p className="text-xs text-gray-400">{isP_Host ? "Lobby Host" : "Member"}</p>
@@ -372,20 +386,44 @@ export default function LobbyPage() {
 
           {/* Center: Game Credentials */}
           <div className="hidden md:flex flex-1 max-w-md mx-6">
-               <div className="flex items-center w-full bg-[#1e1f22] rounded overflow-hidden border border-[#1e1f22] focus-within:border-[#7289da] transition-colors">
+               <div className={cn(
+                   "flex items-center w-full bg-[#1e1f22] rounded overflow-hidden border transition-colors",
+                   isHost ? "focus-within:border-[#5865F2] border-[#1e1f22]" : "border-transparent opacity-80"
+               )}>
                    <div className="bg-[#2b2d31] px-3 py-2.5 text-gray-400 border-r border-[#1e1f22]">
-                       <Copy size={16} />
+                       <Settings size={16} />
                    </div>
                    <input 
                        type="text" 
-                       placeholder="Game Lobby ID / Password" 
-                       className="w-full bg-transparent text-sm text-white px-3 py-2 focus:outline-none placeholder-gray-500 font-mono"
+                       placeholder={isHost ? "Set Game ID / Password" : "Wait for host..."}
+                       className={cn(
+                           "w-full bg-transparent text-sm text-white px-3 py-2 focus:outline-none placeholder-gray-500 font-mono",
+                           !isHost && "cursor-default"
+                       )}
                        value={credentials}
                        onChange={(e) => setCredentials(e.target.value)}
+                       readOnly={!isHost}
+                       onKeyDown={(e) => isHost && e.key === 'Enter' && handleUpdateCredentials()}
+                       onBlur={() => isHost && handleUpdateCredentials()} 
                    />
-                   <button className="bg-[#2b2d31] hover:bg-[#35373c] px-3 py-2.5 text-gray-400 hover:text-white transition-colors">
-                       <RefreshCw size={14} />
-                   </button>
+                   {isHost ? (
+                       <button 
+                           onClick={handleUpdateCredentials}
+                           className="bg-[#2b2d31] hover:bg-[#35373c] px-3 py-2.5 text-gray-400 hover:text-white transition-colors"
+                           title="Save Credentials"
+                       >
+                           <RefreshCw size={14} className="hover:rotate-180 transition-transform" />
+                       </button>
+                   ) : (
+                       <button 
+                           onClick={handleCopyCredentials}
+                           className="bg-[#2b2d31] hover:bg-[#35373c] px-3 py-2.5 text-gray-400 hover:text-white transition-colors"
+                           title="Copy to Clipboard"
+                           disabled={!credentials}
+                       >
+                           <Copy size={14} />
+                       </button>
+                   )}
                </div>
           </div>
 

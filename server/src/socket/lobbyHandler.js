@@ -164,4 +164,32 @@ export const lobbyHandler = (io, socket) => {
       // But 'leave_lobby' event is explicit user action to exit.
   });
 
+  // UPDATE CREDENTIALS
+  socket.on("update_credentials", async ({ credentials }) => {
+       const { lobbyId, userId } = socket.data;
+       if (!lobbyId || !userId) return;
+
+       try {
+           const lobby = await prisma.lobby.findUnique({ where: { id: lobbyId } });
+           if (!lobby) return;
+
+           if (lobby.hostId !== userId) {
+               socket.emit("error", { message: "Only host can update credentials" });
+               return;
+           }
+
+           await prisma.lobby.update({
+               where: { id: lobbyId },
+               data: { credentials }
+           });
+
+           const updatedLobby = await lobbyService.getLobbyById(lobbyId);
+           io.to(`lobby_${lobbyId}`).emit("lobby_updated", updatedLobby);
+
+       } catch (error) {
+           console.error("Update Credentials Error:", error);
+           socket.emit("error", { message: "Failed to update credentials" });
+       }
+  });
+
 };
