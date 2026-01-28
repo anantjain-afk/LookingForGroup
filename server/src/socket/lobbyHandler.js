@@ -32,6 +32,12 @@ export const lobbyHandler = (io, socket) => {
           },
         });
       }
+      
+      // Update lobby timestamp
+      await prisma.lobby.update({
+        where: { id: lobbyId },
+        data: { updatedAt: new Date() },
+      });
 
       // Socket Join
       socket.join(`lobby_${lobbyId}`);
@@ -77,6 +83,13 @@ export const lobbyHandler = (io, socket) => {
       socket.leave(`lobby_${lobbyId}`);
 
       const updatedLobby = await lobbyService.getLobbyById(lobbyId);
+
+      // Update lobby timestamp
+      await prisma.lobby.update({
+        where: { id: lobbyId },
+        data: { updatedAt: new Date() },
+      });
+
       io.to(`lobby_${lobbyId}`).emit("lobby_updated", updatedLobby);
     } catch (error) {
       console.error("Leave Lobby Error:", error);
@@ -145,6 +158,12 @@ export const lobbyHandler = (io, socket) => {
       // Remove target from DB
       await prisma.lobbyParticipant.deleteMany({
         where: { lobbyId, userId: targetUserId },
+      });
+
+      // Update lobby timestamp
+      await prisma.lobby.update({
+        where: { id: lobbyId },
+        data: { updatedAt: new Date() },
       });
 
       // Emit specific kick event so client can redirect

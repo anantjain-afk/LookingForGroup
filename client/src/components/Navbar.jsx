@@ -30,7 +30,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="sticky top-0 z-50 w-full h-[72px] px-7 bg-gradient-to-b from-[#0e0f11] to-[#15171a] border-b border-[#1f2226] flex items-center justify-between">
+    <nav className="sticky top-0 z-50 w-full h-[72px] px-7 bg-[#0e0f11] border-b border-[#1f2226] flex items-center justify-between">
       {/* LEFT */}
       <Link to="/" className="flex items-center gap-3">
         {/* <div className="w-9 h-9 rounded-full border-2 border-[#5865F2] flex items-center justify-center">
@@ -57,7 +57,7 @@ export default function Navbar() {
               <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-green-500" />
             </div>
 
-            <Link to="/host-new-lobby" className="bg-[#5865F2] hover:bg-[#4752c4] text-black font-semibold px-4 py-2 rounded-lg transition">
+            <Link to="/host-new-lobby" className="bg-[#5865F2] hover:bg-[#4752c4] text-white font-semibold px-4 py-2 rounded-lg transition">
               Create Lobby
             </Link>
 
@@ -106,12 +106,12 @@ function NavLink({ children, to }) {
     <Link
       to={to}
       className={`relative cursor-pointer text-sm font-medium transition ${
-        isActive ? "text-[#5865F2]" : "text-gray-400 hover:text-white"
+        isActive ? "text-emerald-500" : "text-gray-400 hover:text-white"
       }`}
     >
       {children}
       {isActive && (
-        <span className="absolute left-0 -bottom-1 w-full h-[2px] bg-[#5865F2] rounded-full" />
+        <span className="absolute left-0 -bottom-1 w-full h-[2px] bg-emerald-500 rounded-full" />
       )}
     </Link>
   );

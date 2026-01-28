@@ -59,10 +59,11 @@ const HostNewLobby = () => {
                 maxPlayers: formData.maxPlayers
             };
             
-            await apiPost('/api/lobbies', payload);
+            const newLobby = await apiPost('/api/lobbies', payload);
             
             toast({ title: "Success", description: "Lobby created successfully!" });
-            navigate(`/game/${selectedGame.id}`);
+            // Navigate to: /game/[gameId]/lobby/[lobbyId]
+            navigate(`/lobby/${newLobby.id}`);
         } catch (error) {
             toast({ title: "Error", description: error.message || "Failed to create lobby", variant: "destructive" });
         }
@@ -166,7 +167,7 @@ const HostNewLobby = () => {
                                                         : " border-[#7289da] text-gray-400 hover:border-[#7289da] hover:text-[#7289da]"
                                                 )}
                                             >
-                                                <div className={`w-5 h-5  border-2 !border-[#7289da] ${isSelected ? "bg-[#7289da]" : ""}`}>
+                                                <div className={`w-5 h-5  border-2 border-[#7289da]! ${isSelected ? "bg-[#7289da]" : ""}`}>
                                                     {isSelected && <Check size={18} className='text-black' />}
                                                 </div>
                                                 <span className="font-medium text-sm">{tag.name}</span>

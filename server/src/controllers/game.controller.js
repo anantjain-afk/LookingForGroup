@@ -2,15 +2,24 @@ import { searchGames, getPopularGames, getDiscoveryGames, getGameById } from '..
 import * as lobbyService from '../services/lobby.service.js';
 
 export const getGames = async (req, res) => {
-  const { query, category } = req.query; // e.g. /api/games?query=valorant OR /api/games?category=shooters
+  const { query, category, genres, platforms } = req.query; // e.g. /api/games?genres=12,5&platforms=6
 
   try {
     let games;
-    if (query) {
-        games = await searchGames(query);
+
+    // Check if we have active search OR filters
+    const hasFilters = (query && query.length > 0) || (genres && genres.length > 0) || (platforms && platforms.length > 0);
+
+    if (hasFilters) {
+        // Parse "1,2,3" string into arrays if needed
+        const genreList = genres ? genres.split(',') : [];
+        const platformList = platforms ? platforms.split(',') : [];
+        
+        games = await searchGames(query, { genres: genreList, platforms: platformList });
     } else if (category) {
         games = await getDiscoveryGames(category);
     } else {
+        // Default Landing / Popular
         games = await getPopularGames();
     }
     

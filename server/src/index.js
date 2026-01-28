@@ -12,6 +12,10 @@ import gameRoutes from "./routes/game.routes.js";
 import tagRoutes from "./routes/tag.routes.js";
 
 import { lobbyHandler } from "./socket/lobbyHandler.js";
+import { initCleanupService } from "./services/cleanup.service.js";
+
+// Start Cleanup Service
+initCleanupService();
 
 const app = express();
 const httpServer = createServer(app);

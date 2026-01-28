@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
+import { apiGet } from '../../api/client';
 import { Input } from "../../components/ui/input"
 
 export default function GameSearch({ onSelect }) {
@@ -10,15 +10,11 @@ export default function GameSearch({ onSelect }) {
 
   const { data: games = [], isLoading, isError } = useQuery({ // <--- 1. Default to []
     queryKey: ['games', search],
-    queryFn: async () => {
+    queryFn: async () => {  
       if (!search || search.length < 2) return [];
       
-    const res = await apiGet(`/api/games?query=${search}`);
-    // console.log("Server Response:", res.data); 
-
-      
-      // 3. CRITICAL: Return res.data (the array), not res (the object)
-      return res.data; 
+      const res = await apiGet(`/api/games?query=${search}`);
+      return res; 
     },
     enabled: search.length > 2,
   });

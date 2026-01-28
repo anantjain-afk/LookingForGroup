@@ -36,21 +36,45 @@ const getAccessToken = async () => {
 };
 
 // 2. The Search Function
-export const searchGames = async (query) => {
+export const searchGames = async (query = "", filters = {}) => {
   const token = await getAccessToken();
+  const { genres, platforms } = filters;
+
+  console.log("Searching IGDB with:", { query, genres, platforms });
+
+  let whereClause = "where cover != null & version_parent = null";
+
+  // Filter by Query (Name)
+  if (query && query.trim().length > 0) {
+      whereClause += ` & name ~ *"${query}"*`; // Case-insensitive partial match
+  }
+
+  // Filter by Genres
+  if (genres && genres.length > 0) {
+      const genreString = genres.join(',');
+      whereClause += ` & genres = (${genreString})`;
+  }
+
+  // Filter by Platforms
+  if (platforms && platforms.length > 0) {
+      const platformString = platforms.join(',');
+      whereClause += ` & platforms = (${platformString})`;
+  }
+
+  // Default sorting if searching
+  const sortClause = query ? "" : "sort total_rating_count desc;";
 
   try {
     const response = await axios.post(
       'https://api.igdb.com/v4/games',
-      // The "Body" here is the Apicalypse Query Language
-      `search "${query}"; 
-      
-       fields name, cover.url, genres.name, platforms.name, first_release_date; 
-       limit 20;`,
+      `fields name, cover.url, genres.name, platforms.name, first_release_date, total_rating_count; 
+       ${whereClause};
+       ${sortClause}
+       limit 30;`,
       {
         headers: {
           'Client-ID': process.env.IGDB_CLIENT_ID,
-          'Authorization': `Bearer ${token}`, // We must send the token here
+          'Authorization': `Bearer ${token}`, 
           'Accept': 'application/json',
         },
       }
