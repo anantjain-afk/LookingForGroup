@@ -8,23 +8,6 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Start seeding ...');
 
-  // --- Seed Games ---
-  const games = [
-    { name: 'Valorant', genre: 'Tactical Shooter', imageUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co2av4.jpg' },
-    { name: 'Apex Legends', genre: 'Battle Royale', imageUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co25gl.jpg' },
-    { name: 'Counter-Strike 2', genre: 'Tactical Shooter', imageUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co6y0k.jpg' },
-    { name: 'League of Legends', genre: 'MOBA', imageUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co2cv2.jpg' },
-    { name: 'Overwatch 2', genre: 'Hero Shooter', imageUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co5s5v.jpg' },
-  ];
-
-  for (const g of games) {
-    await prisma.game.upsert({
-      where: { name: g.name },
-      update: {},
-      create: g,
-    });
-  }
-
   // --- Seed Tags ---
   // Wipe existing tags (must clear LobbyTag first due to FK constraints)
   await prisma.lobbyTag.deleteMany({});
