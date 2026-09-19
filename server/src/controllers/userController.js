@@ -1,4 +1,5 @@
 import prisma from '../db/config.js';
+import { getGameById } from '../services/igdb.service.js';
 
 /**
  * GET /api/me
@@ -9,7 +10,13 @@ import prisma from '../db/config.js';
 export const getMe = async (req, res) => {
   try {
     // User is already attached to req by verifyToken middleware
-    res.json(req.user);
+    const userWithFavorites = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      include: {
+        favoriteGames: true
+      }
+    });
+    res.json(userWithFavorites);
   } catch (error) {
     console.error("Error in getMe:", error);
     res.status(500).json({ error: "Failed to fetch user data" });
@@ -50,7 +57,8 @@ export const updateProfile = async (req, res) => {
                 username: true,
                 avatar: true,
                 bio: true,
-                karmaScore: true
+                karmaScore: true,
+                favoriteGames: true
             }
         });
 
@@ -78,7 +86,8 @@ export const getUserProfile = async (req, res) => {
                 avatar: true,
                 bio: true,
                 karmaScore: true,
-                createdAt: true
+                createdAt: true,
+                favoriteGames: true
             }
         });
 
@@ -90,5 +99,80 @@ export const getUserProfile = async (req, res) => {
     } catch (error) {
         console.error("Error in getUserProfile:", error);
         res.status(500).json({ error: "Failed to fetch user profile" });
+    }
+};
+
+export const addFavoriteGame = async (req, res) => {
+    try {
+        const { gameId } = req.params;
+        const userId = req.user.id;
+
+        let localGame = await prisma.game.findUnique({
+            where: { igdbId: parseInt(gameId) }
+        });
+
+        if (!localGame && !isNaN(gameId)) {
+            const igdbGame = await getGameById(gameId);
+            if (!igdbGame) return res.status(404).json({ error: "Game not found in IGDB" });
+            
+            localGame = await prisma.game.findFirst({ where: { name: igdbGame.name } });
+            if (localGame) {
+                localGame = await prisma.game.update({
+                    where: { id: localGame.id },
+                    data: { igdbId: igdbGame.id, imageUrl: igdbGame.cover, genre: igdbGame.genres ? igdbGame.genres[0] : "Unknown" }
+                });
+            } else {
+                localGame = await prisma.game.create({
+                    data: { name: igdbGame.name, igdbId: igdbGame.id, imageUrl: igdbGame.cover, genre: igdbGame.genres ? igdbGame.genres[0] : "Unknown" }
+                });
+            }
+        } else if (!localGame && isNaN(gameId)) {
+            localGame = await prisma.game.findUnique({ where: { id: gameId } });
+        }
+
+        if (!localGame) return res.status(404).json({ error: "Game not found" });
+
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: {
+                favoriteGames: {
+                    connect: { id: localGame.id }
+                }
+            },
+            include: { favoriteGames: true }
+        });
+
+        res.json(updatedUser.favoriteGames);
+    } catch (error) {
+        console.error("Error adding favorite game:", error);
+        res.status(500).json({ error: "Failed to add favorite game" });
+    }
+};
+
+export const removeFavoriteGame = async (req, res) => {
+    try {
+        const { gameId } = req.params;
+        const userId = req.user.id;
+
+        let localGameId = gameId;
+        if (!isNaN(gameId)) {
+            const localGame = await prisma.game.findUnique({ where: { igdbId: parseInt(gameId) } });
+            if (localGame) localGameId = localGame.id;
+        }
+
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: {
+                favoriteGames: {
+                    disconnect: { id: localGameId }
+                }
+            },
+            include: { favoriteGames: true }
+        });
+
+        res.json(updatedUser.favoriteGames);
+    } catch (error) {
+        console.error("Error removing favorite game:", error);
+        res.status(500).json({ error: "Failed to remove favorite game" });
     }
 };

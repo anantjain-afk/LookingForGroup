@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Flame, Pencil, Save, X } from "lucide-react";
+import { ArrowLeft, Flame, Pencil, Save, X, Plus, Trash2, Search } from "lucide-react";
 import { useUserStore } from "../store/useUserStore";
-import { apiPut, apiGet } from "../api/client";
+import { apiPut, apiGet, apiPost, apiDelete } from "../api/client";
 import { useToast } from "../components/ui/toast";
 
 export default function ProfilePage() {
@@ -13,6 +13,10 @@ export default function ProfilePage() {
   
   const [activeUser, setActiveUser] = useState(null); // The user being displayed
   const [loading, setLoading] = useState(true);
+  
+  const [gameSearchQuery, setGameSearchQuery] = useState("");
+  const [gameSearchResults, setGameSearchResults] = useState([]);
+  const [isSearchingGames, setIsSearchingGames] = useState(false);
   
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -54,6 +58,24 @@ export default function ProfilePage() {
     }
   }, [urlUsername, currentUser, isOwnProfile, navigate, toast]);
 
+  useEffect(() => {
+      const delayDebounceFn = setTimeout(async () => {
+          if (gameSearchQuery.trim().length > 2) {
+              setIsSearchingGames(true);
+              try {
+                  const results = await apiGet(`/api/games?query=${encodeURIComponent(gameSearchQuery)}`);
+                  setGameSearchResults(results);
+              } catch (error) {
+                  console.error(error);
+              } finally {
+                  setIsSearchingGames(false);
+              }
+          } else {
+              setGameSearchResults([]);
+          }
+      }, 500);
+      return () => clearTimeout(delayDebounceFn);
+  }, [gameSearchQuery]);
 
   // Initialize form data when entering edit mode or activeUser changes
   useEffect(() => {
@@ -87,6 +109,38 @@ export default function ProfilePage() {
           });
       }
       setIsEditing(false);
+  };
+
+  const handleAddGame = async (gameId) => {
+      try {
+          const updatedGames = await apiPost(`/api/me/favorites/${gameId}`);
+          const newUser = { ...activeUser, favoriteGames: updatedGames };
+          setActiveUser(newUser);
+          if (isOwnProfile) {
+              updateUser(newUser);
+          }
+          setGameSearchQuery("");
+          setGameSearchResults([]);
+          toast({ title: "Success", description: "Game added to favorites!" });
+      } catch (error) {
+          console.error(error);
+          toast({ title: "Error", description: error.message || "Failed to add game", variant: "destructive" });
+      }
+  };
+
+  const handleRemoveGame = async (gameId) => {
+      try {
+          const updatedGames = await apiDelete(`/api/me/favorites/${gameId}`);
+          const newUser = { ...activeUser, favoriteGames: updatedGames };
+          setActiveUser(newUser);
+          if (isOwnProfile) {
+              updateUser(newUser);
+          }
+          toast({ title: "Success", description: "Game removed from favorites!" });
+      } catch (error) {
+          console.error(error);
+          toast({ title: "Error", description: error.message || "Failed to remove game", variant: "destructive" });
+      }
   };
 
   if (loading || !activeUser) {
@@ -216,8 +270,8 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Social Links Placeholder */}
+                {/* 
                 <div className="grid grid-cols-2 gap-3">
-                    {/* BattleNet */}
                     <div className="flex items-center gap-3 p-2 rounded hover:bg-white/5 transition">
                         <div className="w-8 h-8 bg-blue-500/20 rounded flex items-center justify-center text-blue-400 text-xs">BN</div>
                         <div>
@@ -225,7 +279,6 @@ export default function ProfilePage() {
                             <p className="text-xs text-white">alpitts</p>
                         </div>
                     </div>
-                    {/* Xbox */}
                     <div className="flex items-center gap-3 p-2 rounded hover:bg-white/5 transition">
                         <div className="w-8 h-8 bg-green-500/20 rounded flex items-center justify-center text-green-400 text-xs">XB</div>
                         <div>
@@ -233,7 +286,6 @@ export default function ProfilePage() {
                             <p className="text-xs text-white">apitts43</p>
                         </div>
                     </div>
-                    {/* Twitch */}
                     <div className="flex items-center gap-3 p-2 rounded hover:bg-white/5 transition">
                          <div className="w-8 h-8 bg-purple-500/20 rounded flex items-center justify-center text-purple-400 text-xs">TW</div>
                         <div>
@@ -241,7 +293,6 @@ export default function ProfilePage() {
                             <p className="text-xs text-white">twitch.tv/ap</p>
                         </div>
                     </div>
-                    {/* Steam */}
                     <div className="flex items-center gap-3 p-2 rounded hover:bg-white/5 transition">
                         <div className="w-8 h-8 bg-slate-500/20 rounded flex items-center justify-center text-slate-400 text-xs">ST</div>
                         <div>
@@ -250,8 +301,10 @@ export default function ProfilePage() {
                         </div>
                     </div>
                 </div>
+                */}
 
                 {/* Activity / Top Games Placeholder */}
+                 {/* 
                  <div>
                     <h3 className="text-lg font-bold text-white mb-4">Activity</h3>
                      <div className="bg-gradient-to-r from-red-900/40 to-slate-900 border border-white/5 rounded-xl p-4 flex gap-4 items-center relative overflow-hidden group hover:border-red-500/30 transition">
@@ -267,27 +320,87 @@ export default function ProfilePage() {
                          </div>
                     </div>
                 </div>
+                */}
 
-                 {/* Top Games Grid Placeholder */}
+                 {/* Favorite Games Section */}
                  <div>
-                    <h3 className="text-lg font-bold text-white mb-4">Top Games</h3>
-                    <div className="grid grid-cols-4 gap-2">
-                         <div className="aspect-square bg-slate-800 rounded-lg border border-white/5 hover:border-white/20 transition cursor-pointer"></div>
-                         <div className="aspect-square bg-slate-800 rounded-lg border border-white/5 hover:border-white/20 transition cursor-pointer"></div>
-                         <div className="aspect-square bg-slate-800 rounded-lg border border-white/5 hover:border-white/20 transition cursor-pointer"></div>
-                         <div className="aspect-square bg-slate-800 rounded-lg border border-white/5 hover:border-white/20 transition cursor-pointer"></div>
+                    <h3 className="text-lg font-bold text-white mb-4">Favorite Games</h3>
+                    
+                    {isEditing && (
+                        <div className="mb-4 relative">
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    placeholder="Search for a game to add..."
+                                    value={gameSearchQuery}
+                                    onChange={(e) => setGameSearchQuery(e.target.value)}
+                                    className="w-full bg-[#1e2124] border border-gray-700 rounded-lg pl-10 pr-4 py-2 text-white focus:border-[#5865F2] focus:outline-none"
+                                />
+                                <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
+                            </div>
+                            
+                            {gameSearchQuery.length > 2 && (
+                                <div className="absolute z-20 w-full mt-1 bg-[#1e2124] border border-gray-700 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                                    {isSearchingGames ? (
+                                        <div className="p-3 text-center text-sm text-gray-400">Searching...</div>
+                                    ) : gameSearchResults.length > 0 ? (
+                                        gameSearchResults.map(game => (
+                                            <div key={game.id} className="flex items-center justify-between p-2 hover:bg-white/5 border-b border-white/5 last:border-0">
+                                                <div className="flex items-center gap-3 truncate">
+                                                    {game.cover && <img src={game.cover} className="w-8 h-8 rounded object-cover" />}
+                                                    <span className="text-sm truncate">{game.name}</span>
+                                                </div>
+                                                <button 
+                                                    onClick={() => handleAddGame(game.id)}
+                                                    className="p-1.5 bg-[#5865F2]/20 text-[#5865F2] rounded hover:bg-[#5865F2] hover:text-white transition"
+                                                >
+                                                    <Plus size={14} />
+                                                </button>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="p-3 text-center text-sm text-gray-400">No games found</div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    <div className="grid grid-cols-4 gap-4">
+                         {activeUser.favoriteGames?.map(game => (
+                             <div key={game.id} className="flex flex-col items-center gap-2">
+                                 <div className="w-full aspect-square bg-slate-800 rounded-lg border border-white/5 relative group overflow-hidden">
+                                     {game.imageUrl ? (
+                                         <img src={game.imageUrl} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition" />
+                                     ) : (
+                                         <div className="w-full h-full flex items-center justify-center p-2 text-center text-xs text-gray-400">{game.name}</div>
+                                     )}
+                                     {isEditing && (
+                                         <button 
+                                            onClick={() => handleRemoveGame(game.id)}
+                                            className="absolute top-1 right-1 p-1 bg-red-500/80 text-white rounded opacity-0 group-hover:opacity-100 transition hover:bg-red-600"
+                                         >
+                                             <Trash2 size={12} />
+                                         </button>
+                                     )}
+                                 </div>
+                                 <span className="text-sm font-semibold text-gray-300 text-center truncate w-full px-1">{game.name}</span>
+                             </div>
+                         ))}
+                         {(!activeUser.favoriteGames || activeUser.favoriteGames.length === 0) && (
+                             <div className="col-span-4 text-sm text-gray-500 py-4 text-center border border-dashed border-gray-700 rounded-lg">No favorite games added yet.</div>
+                         )}
                     </div>
                  </div>
             </div>
 
             {/* Right Column: Stats, Ranks, Achievements */}
+            {/* 
             <div className="lg:col-span-2 space-y-10">
                 
-                {/* Ranks Section Placeholder */}
                 <div className="space-y-4">
                     <h3 className="text-xl font-bold text-white">Ranks</h3>
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                         {/* Rank Placeholder Items */}
                         {[1, 2, 3, 4, 5].map((i) => (
                              <div key={i} className="bg-slate-900/50 border border-white/5 rounded-xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-800/50 transition cursor-pointer group">
                                 <div className="w-12 h-12 bg-slate-700/50 rounded-full group-hover:bg-slate-700 transition"></div>
@@ -300,11 +413,9 @@ export default function ProfilePage() {
                     </div>
                 </div>
 
-                {/* Achievements Section Placeholder */}
                  <div className="space-y-4">
                     <h3 className="text-xl font-bold text-white">Achievements</h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                         {/* Achievement Circular Progress Placeholders */}
                          {[
                             { label: "10 perfect games", val: "6", total: "10", color: "text-cyan-400", border: "border-cyan-400" }, 
                             { label: "100 kills", val: "65", total: "100", color: "text-blue-500", border: "border-blue-500" },
@@ -321,12 +432,10 @@ export default function ProfilePage() {
                     </div>
                 </div>
 
-                {/* Stats Section Placeholder */}
                 <div className="space-y-4">
                     <h3 className="text-xl font-bold text-white">Stats</h3>
                     <div className="bg-slate-900/50 border border-white/5 rounded-2xl p-6 h-64 flex items-center justify-center relative">
                         <p className="text-gray-500 text-sm">Graph Placeholder (Hours per day)</p>
-                        {/* Placeholder line graph lines */}
                         <div className="absolute bottom-10 left-10 right-10 top-20 flex items-end justify-between px-4">
                              {[40, 60, 45, 70, 50, 80, 75, 90, 85].map((h, i) => (
                                 <div key={i} style={{ height: `${h}%` }} className="w-full mx-1 bg-gradient-to-t from-emerald-500/20 to-transparent border-t-2 border-emerald-500/50 rounded-t"></div>
@@ -336,6 +445,7 @@ export default function ProfilePage() {
                 </div>
 
             </div>
+            */}
         </div>
       </div>
     </div>

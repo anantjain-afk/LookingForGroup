@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/ui/toast';
-import { apiPost } from '../api/client';
+import { apiPost, apiGet } from '../api/client';
 import { Check } from 'lucide-react';
 import GameSearch from '../features/lobby/gameSearch';
 import { Gamepad2, Hash, AlignLeft, Tag, Users } from 'lucide-react';
@@ -9,9 +9,7 @@ import { cn } from '../lib/utils';
 
 // Tag Fetcher
 const fetchTags = async () => {
-    const res = await fetch('/api/tags');
-    const data = await res.json();
-    return data;
+    return await apiGet('/api/tags');
 };
 
 const HostNewLobby = () => {
@@ -25,6 +23,7 @@ const HostNewLobby = () => {
         description: '',
         maxPlayers: 5
     });
+    const [isCreating, setIsCreating] = useState(false);
 
     useEffect(() => {
         fetchTags().then((data) => setTags(data));
@@ -50,6 +49,7 @@ const HostNewLobby = () => {
             return;
         }
 
+        setIsCreating(true);
         try {
             const payload = {
                 gameId: selectedGame.id,
@@ -66,6 +66,8 @@ const HostNewLobby = () => {
             navigate(`/lobby/${newLobby.id}`);
         } catch (error) {
             toast({ title: "Error", description: error.message || "Failed to create lobby", variant: "destructive" });
+        } finally {
+            setIsCreating(false);
         }
     };
 
@@ -209,8 +211,9 @@ const HostNewLobby = () => {
                     <div className="pt-4 flex justify-end">
                          <button 
                              onClick={handleCreateLobby}
-                             className="bg-[#5865F2] text-gray-200 font-bold py-3 px-8 rounded-lg hover:bg-[#4752c4] hover:scale-105 transition-all ">
-                             Create Lobby
+                             disabled={isCreating}
+                             className={`bg-[#5865F2] text-gray-200 font-bold py-3 px-8 rounded-lg transition-all ${isCreating ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#4752c4] hover:scale-105'}`}>
+                             {isCreating ? 'Creating...' : 'Create Lobby'}
                          </button>
                     </div>
 
