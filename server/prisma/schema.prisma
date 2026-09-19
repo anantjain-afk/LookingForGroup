@@ -26,6 +26,7 @@ model User {
 
   lobbiesHosted Lobby[]            @relation("HostedLobbies")
   lobbiesJoined LobbyParticipant[]
+  favoriteGames Game[]             @relation("UserFavoriteGames")
 }
 
 model Game {
@@ -37,6 +38,7 @@ model Game {
   lobbies   Lobby[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  favoritedBy User[] @relation("UserFavoriteGames")
 }
 
 model Tag {

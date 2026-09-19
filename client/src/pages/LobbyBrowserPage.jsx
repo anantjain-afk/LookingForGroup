@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Users, Trophy, Clock, Search, X } from "lucide-react";
+import { Users, Trophy, Clock, Search, X, Heart } from "lucide-react";
 import { useUserStore } from "../store/useUserStore";
 import { formatDistanceToNow } from "date-fns";
-import { apiGet } from "../api/client";
+import { apiGet, apiPost, apiDelete } from "../api/client";
 import { cn } from "../lib/utils";
 import UserProfileLink from "../components/UserProfileLink";
 
@@ -28,6 +28,8 @@ const fetchTags = async () => {
 export default function LobbyBrowserPage() {
   const { gameId } = useParams();
   const [selectedTagIds, setSelectedTagIds] = useState([]);
+  const { user, updateUser } = useUserStore();
+  const [isUpdatingFavorite, setIsUpdatingFavorite] = useState(false);
 
   // Queries
   const { data: game, isLoading: loadingGame } = useQuery({
@@ -56,6 +58,38 @@ export default function LobbyBrowserPage() {
 
   // Derived state
   const activeLobbyCount = lobbies?.length || 0;
+  
+  // Check if current game is in favorites
+  const isFavorite = user?.favoriteGames?.some(g => {
+      // gameId from URL could be IGDB ID or local ID
+      // game object from API has both id and igdbId
+      if (!game) return false;
+      return g.id === game.id || g.igdbId === game.id || g.igdbId === parseInt(gameId) || g.id === gameId;
+  });
+
+  const toggleFavorite = async () => {
+      if (!user || !game || isUpdatingFavorite) return;
+      
+      setIsUpdatingFavorite(true);
+      try {
+          let updatedGames;
+          // The API for add/remove favorites accepts either IGDB ID or local ID.
+          // game.id from getGameDetails might be the IGDB ID (since it's fetched from IGDB or DB).
+          const idToUse = game.id || gameId; 
+          
+          if (isFavorite) {
+              updatedGames = await apiDelete(`/api/me/favorites/${idToUse}`);
+          } else {
+              updatedGames = await apiPost(`/api/me/favorites/${idToUse}`);
+          }
+          
+          updateUser({ ...user, favoriteGames: updatedGames });
+      } catch (error) {
+          console.error("Failed to update favorite games:", error);
+      } finally {
+          setIsUpdatingFavorite(false);
+      }
+  };
 
   if (loadingGame) {
     return <div className="min-h-screen bg-[#1e2124] flex items-center justify-center text-white">Loading...</div>;
@@ -76,14 +110,32 @@ export default function LobbyBrowserPage() {
         />
         <div className="absolute inset-0 bg-linear-to-t from-[#1e2124] via-[#1e2124]/60 to-transparent" />
         
-        <div className="absolute bottom-0 left-0 w-full p-8 pb-10 max-w-7xl mx-auto">
-          <h1 className="text-5xl md:text-6xl font-black text-white tracking-widest uppercase drop-shadow-2xl">
-            {game.name}
-          </h1>
-          <p className="font-medium text-lg mt-2 text-emerald-500 flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-            {activeLobbyCount} Active Lobbies
-          </p>
+        <div className="absolute bottom-0 left-0 w-full p-8 pb-10 max-w-7xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+              <h1 className="text-5xl md:text-6xl font-black text-white tracking-widest uppercase drop-shadow-2xl">
+                {game.name}
+              </h1>
+              <p className="font-medium text-lg mt-2 text-emerald-500 flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                {activeLobbyCount} Active Lobbies
+              </p>
+          </div>
+          
+          {user && (
+              <button 
+                  onClick={toggleFavorite}
+                  disabled={isUpdatingFavorite}
+                  className={cn(
+                      "flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all shadow-lg",
+                      isFavorite 
+                          ? "bg-red-500/10 text-red-500 border border-red-500/50 hover:bg-red-500/20"
+                          : "bg-white/10 text-white backdrop-blur-md border border-white/20 hover:bg-white/20"
+                  )}
+              >
+                  <Heart size={20} className={cn(isFavorite ? "fill-red-500" : "")} />
+                  {isFavorite ? "Favorited" : "Add to Favorites"}
+              </button>
+          )}
         </div>
       </div>
 

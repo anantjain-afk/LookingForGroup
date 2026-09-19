@@ -1,5 +1,5 @@
 import express from "express";
-import { getMe, updateProfile, getUserProfile } from "../controllers/userController.js";
+import { getMe, updateProfile, getUserProfile, addFavoriteGame, removeFavoriteGame } from "../controllers/userController.js";
 import { verifyToken } from "../middleware/verifyToken.js";
 
 const router = express.Router();
@@ -9,6 +9,12 @@ router.get("/me", verifyToken, getMe);
 
 // PUT /api/me - Update profile
 router.put("/me", verifyToken, updateProfile);
+
+// POST /api/me/favorites/:gameId - Add favorite game
+router.post("/me/favorites/:gameId", verifyToken, addFavoriteGame);
+
+// DELETE /api/me/favorites/:gameId - Remove favorite game
+router.delete("/me/favorites/:gameId", verifyToken, removeFavoriteGame);
 
 // GET /api/users/profile/:username - Public profile
 router.get("/users/profile/:username", getUserProfile);
