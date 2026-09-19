@@ -16,14 +16,32 @@ export const createLobby = async (data, hostId) => {
       const igdbGame = await getGameById(gameId);
       if (!igdbGame) throw new Error("Invalid Game ID");
       
-      localGame = await prisma.game.create({
-          data: {
-              name: igdbGame.name,
-              igdbId: igdbGame.id,
-              imageUrl: igdbGame.cover,
-              genre: igdbGame.genres[0] || "Unknown"
-          }
+      // Check if the game already exists by name (e.g., from a seed script)
+      localGame = await prisma.game.findUnique({
+          where: { name: igdbGame.name }
       });
+
+      if (localGame) {
+          // Update the existing seeded game with IGDB details
+          localGame = await prisma.game.update({
+              where: { id: localGame.id },
+              data: {
+                  igdbId: igdbGame.id,
+                  imageUrl: igdbGame.cover || localGame.imageUrl,
+                  genre: igdbGame.genres && igdbGame.genres.length > 0 ? igdbGame.genres[0] : localGame.genre
+              }
+          });
+      } else {
+          // Create new game if it doesn't exist at all
+          localGame = await prisma.game.create({
+              data: {
+                  name: igdbGame.name,
+                  igdbId: igdbGame.id,
+                  imageUrl: igdbGame.cover,
+                  genre: igdbGame.genres && igdbGame.genres.length > 0 ? igdbGame.genres[0] : "Unknown"
+              }
+          });
+      }
   }
 
   // 2. Create Lobby linked to the local Game ID

@@ -4,6 +4,8 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import { createServer } from "http";
 import { Server } from "socket.io";
+import { createClient } from "redis";
+import { createAdapter } from "@socket.io/redis-adapter";
 
 import userRoutes from "./routes/userRoutes.js";
 import authRoutes from "./routes/auth.routes.js";
@@ -38,6 +40,17 @@ const io = new Server(httpServer, {
     origin: process.env.CLIENT_URL || "http://localhost:5173",
     credentials: true,
   },
+});
+
+// Set up Redis Adapter for Socket.io
+const pubClient = createClient({ url: process.env.REDIS_URL || "redis://localhost:6379" });
+const subClient = pubClient.duplicate();
+
+Promise.all([pubClient.connect(), subClient.connect()]).then(() => {
+  io.adapter(createAdapter(pubClient, subClient));
+  console.log("🚀 Redis Adapter connected to Socket.io");
+}).catch(err => {
+  console.error("❌ Redis connection failed. Ensure Redis is running locally or via Docker!", err);
 });
 
 // Make io accessible in routes
