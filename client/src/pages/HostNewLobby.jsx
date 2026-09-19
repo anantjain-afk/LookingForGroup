@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/ui/toast';
-import { apiPost } from '../api/client';
+import { apiPost, apiGet } from '../api/client';
 import { Check } from 'lucide-react';
 import GameSearch from '../features/lobby/gameSearch';
 import { Gamepad2, Hash, AlignLeft, Tag, Users } from 'lucide-react';
@@ -9,9 +9,7 @@ import { cn } from '../lib/utils';
 
 // Tag Fetcher
 const fetchTags = async () => {
-    const res = await fetch('/api/tags');
-    const data = await res.json();
-    return data;
+    return await apiGet('/api/tags');
 };
 
 const HostNewLobby = () => {
