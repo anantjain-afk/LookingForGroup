@@ -1,5 +1,5 @@
 import express from 'express';
-import { verifyToken } from '../middleware/verifyToken.js';
+import { verifyToken, requireVerified } from '../middleware/verifyToken.js';
 import * as lobbyController from '../controllers/lobby.controller.js';
 
 const router = express.Router();
@@ -10,7 +10,7 @@ const router = express.Router();
 router.get('/', lobbyController.getLobbies);
 
 // POST /api/lobbies - Create Lobby (Protected)
-router.post('/', verifyToken, lobbyController.createLobby);
+router.post('/', verifyToken, requireVerified, lobbyController.createLobby);
 
 // GET /api/lobbies/:id - Get Single Lobby (Public/Protected?)
 router.get('/:id', lobbyController.getLobby);

@@ -15,6 +15,8 @@ import LobbyPage from "./pages/LobbyPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import HostNewLobby from "./pages/HostNewLobby";
+import AuthPage from './pages/AuthPage';
+import AuthBanner from './components/AuthBanner';
 
 import "./App.css";
 
@@ -23,6 +25,7 @@ function App() {
 
   return (
     <ToastProvider>
+      <AuthBanner />
       <Router>
         <Routes>
 
@@ -37,18 +40,21 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
             <Route path="/profile/:username" element={<ProfilePage />} />
             <Route path="/browse" element={<BrowseGamesPage />} />
             <Route path="/game/:gameId" element={<LobbyBrowserPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
-            <Route path="/host-new-lobby" element={<HostNewLobby />} />
+            <Route path="/host-new-lobby" element={<ProtectedRoute><HostNewLobby /></ProtectedRoute>} />
+            <Route path="/forgot-password" element={<AuthPage mode="forgot" />} />
+            <Route path="/reset-password" element={<AuthPage mode="reset" />} />
+            <Route path="/verify-email" element={<AuthPage mode="verify" />} />
           </Route>
 
           {/* Routes WITHOUT navbar */}
           <Route element={<NoNavbarLayout />}>
-            <Route path="/lobby/:lobbyId" element={<LobbyPage />} />
+            <Route path="/lobby/:lobbyId" element={<ProtectedRoute><LobbyPage /></ProtectedRoute>} />
           </Route>
 
         </Routes>

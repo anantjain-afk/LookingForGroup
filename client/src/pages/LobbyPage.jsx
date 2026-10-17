@@ -15,8 +15,8 @@ import {
 } from "lucide-react";
 
 import { useUserStore } from "../store/useUserStore";
-import { useToast } from "../components/ui/toast";
-import { apiPatch } from "../api/client";
+import { useToast } from "../hooks/useToast";
+import { apiPatch, apiPost, SOCKET_BASE_URL } from "../api/client";
 import { cn } from "../lib/utils";
 import ConfirmationModal from "../components/ConfirmationModal";
 import UserProfileLink from "../components/UserProfileLink";
@@ -106,16 +106,21 @@ export default function LobbyPage() {
     if (!user || !lobbyId) return;
 
     // 1. Connect
-    const socketUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+    const socketUrl = SOCKET_BASE_URL;
     const newSocket = io(socketUrl, {
       withCredentials: true,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: Infinity,
+      auth: callback => {
+        apiPost('/api/auth/socket-ticket').then(({ ticket }) => callback({ ticket })).catch(err => {
+          toast({ title: 'Connection unavailable', description: err.message, variant: 'destructive' });
+          callback({});
+        });
+      },
     });
-
-    setSocket(newSocket);
 
     // 2. Setup Listeners
     newSocket.on("connect", () => {
+      setSocket(newSocket);
       setIsConnected(true);
       // Join immediately upon connection
       newSocket.emit("join_lobby", { lobbyId, userId: user.id });

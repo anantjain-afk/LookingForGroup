@@ -2,7 +2,7 @@ import * as React from "react";
 import { X } from "lucide-react";
 import { cn } from "../../lib/utils";
 
-const ToastContext = React.createContext();
+import { ToastContext } from './toast-context';
 
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = React.useState([]);
@@ -39,14 +39,6 @@ export const ToastProvider = ({ children }) => {
       </div>
     </ToastContext.Provider>
   );
-};
-
-export const useToast = () => {
-  const context = React.useContext(ToastContext);
-  if (!context) {
-    throw new Error("useToast must be used within ToastProvider");
-  }
-  return context;
 };
 
 const Toast = ({ title, description, variant, onDismiss }) => {

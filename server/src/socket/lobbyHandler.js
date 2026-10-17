@@ -3,7 +3,8 @@ import * as lobbyService from "../services/lobby.service.js";
 
 export const lobbyHandler = (io, socket) => {
   // JOIN LOBBY
-  socket.on("join_lobby", async ({ lobbyId, userId }) => {
+  socket.on("join_lobby", async ({ lobbyId }) => {
+    const userId = socket.data.userId;
     try {
       const lobby = await prisma.lobby.findUnique({
         where: { id: lobbyId },
@@ -97,7 +98,9 @@ export const lobbyHandler = (io, socket) => {
   });
 
   // SEND MESSAGE
-  socket.on("send_message", async ({ message, user }) => {
+  socket.on("send_message", async ({ message }) => {
+    const { id, username, avatar } = socket.data.user;
+    const user = { id, username, avatar };
     const { lobbyId } = socket.data;
     if (!lobbyId) return;
 

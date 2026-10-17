@@ -1,5 +1,6 @@
 import prisma from '../db/config.js';
 import { getGameById } from '../services/igdb.service.js';
+import { privateUser } from '../services/auth.service.js';
 
 /**
  * GET /api/me
@@ -10,12 +11,7 @@ import { getGameById } from '../services/igdb.service.js';
 export const getMe = async (req, res) => {
   try {
     // User is already attached to req by verifyToken middleware
-    const userWithFavorites = await prisma.user.findUnique({
-      where: { id: req.user.id },
-      include: {
-        favoriteGames: true
-      }
-    });
+    const userWithFavorites = await privateUser(req.user.id);
     res.json(userWithFavorites);
   } catch (error) {
     console.error("Error in getMe:", error);

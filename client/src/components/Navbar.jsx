@@ -1,19 +1,24 @@
 import { Bell, User, LogOut } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useUserStore } from "../store/useUserStore";
-import { useToast } from "./ui/toast";
+import { useToast } from "../hooks/useToast";
 import { apiPost } from "../api/client";
 import { Button } from "./ui/button";
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function Navbar() {
   const user = useUserStore((state) => state.user);
   const clearUser = useUserStore((state) => state.clearUser);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const handleLogout = async () => {
     try {
       await apiPost("/api/auth/logout");
+      await queryClient.cancelQueries();
+      queryClient.clear();
+      queryClient.setQueryData(['auth', 'me'], null);
       clearUser();
       toast({
         title: "Logged out",
@@ -23,7 +28,7 @@ export default function Navbar() {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to logout. Please try again.",
+        description: error.message || "Failed to logout. Please try again.",
         variant: "destructive",
       });
     }
@@ -40,13 +45,11 @@ export default function Navbar() {
       </Link>
 
       {/* CENTER */}
-      {user && (
-        <div className="flex items-center gap-10">
+        <div className="hidden sm:flex items-center gap-6">
           <NavLink to="/">Home</NavLink>
           <NavLink to="/browse">Browse Games</NavLink>
-          <NavLink to="/profile">Profile</NavLink>
+          {user && <NavLink to="/profile">Profile</NavLink>}
         </div>
-      )}
 
       {/* RIGHT */}
       <div className="flex items-center gap-5">

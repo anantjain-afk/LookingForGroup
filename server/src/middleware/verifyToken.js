@@ -1,57 +1,19 @@
-import prisma from "../db/config.js";
-import jwt from "jsonwebtoken";
+import { findSession, verifySignedToken, sessionCookieName } from '../services/session.service.js';
+import { AppError } from '../lib/errors.js';
 /**
  * Middleware to verify JWT token from cookies
  * Protects routes that require authentication
  */
 export const verifyToken = async (req, res, next) => {
   try {
-    // Get token from cookies
-    const token = req.cookies.token;
-
-    if (!token) {
-      return res.status(401).json({ error: "No token, authorization denied" });
-    }
-
-    // Verify token
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET || "your-secret-key-change-this",
-    );
-
-    // Get user from database
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        avatar: true,
-        bio: true,
-        karmaScore: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-
-    if (!user) {
-      return res.status(401).json({ error: "User not found" });
-    }
-
-    // Attach user to request object
-    req.user = user;
+    const payload = verifySignedToken(req.cookies[sessionCookieName()], 'session');
+    req.session = await findSession(payload.sid);
+    req.user = req.session.user;
+    res.set('Cache-Control', 'no-store');
     next();
-  } catch (error) {
-    console.error("Error in verifyToken:", error);
-
-    if (error.name === "JsonWebTokenError") {
-      return res.status(401).json({ error: "Token is invalid" });
-    }
-
-    if (error.name === "TokenExpiredError") {
-      return res.status(401).json({ error: "Token has expired" });
-    }
-
-    res.status(500).json({ error: "Server error during authentication" });
-  }
+  } catch (error) { next(error); }
 };
+export function requireVerified(req, _res, next) {
+  if (!req.user?.emailVerifiedAt) return next(new AppError(403, 'Verify your email before joining or hosting a lobby.', 'EMAIL_UNVERIFIED'));
+  next();
+}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useToast } from '../components/ui/toast';
+import { useToast } from '../hooks/useToast';
 import { apiPost, apiGet } from '../api/client';
 import { Check } from 'lucide-react';
 import GameSearch from '../features/lobby/gameSearch';

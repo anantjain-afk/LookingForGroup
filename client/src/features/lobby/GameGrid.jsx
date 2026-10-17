@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
 import { apiGet } from '../../api/client';
 
 export default function GameGrid() {

@@ -15,8 +15,14 @@ services:
       - key: DATABASE_URL
         sync: false
       - key: CLIENT_URL
-        sync: false
+        value: https://looking-for-group.vercel.app
       - key: PUBLIC_APP_URL
+        value: https://looking-for-group.vercel.app
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: MAIL_FROM_EMAIL
         sync: false
       - key: JWT_SECRET
         generateValue: true

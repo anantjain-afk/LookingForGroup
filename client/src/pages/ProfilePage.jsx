@@ -3,7 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Flame, Pencil, Save, X, Plus, Trash2, Search } from "lucide-react";
 import { useUserStore } from "../store/useUserStore";
 import { apiPut, apiGet, apiPost, apiDelete } from "../api/client";
-import { useToast } from "../components/ui/toast";
+import { useToast } from "../hooks/useToast";
+import AccountSettings from '../components/AccountSettings';
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -248,6 +249,7 @@ export default function ProfilePage() {
             
             {/* Left Column: Sidebar (User Identity) */}
             <div className="space-y-8">
+                {isOwnProfile && <AccountSettings />}
                 {/* Bio */}
                 <div className="space-y-4">
                     {isEditing ? (
