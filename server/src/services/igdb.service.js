@@ -61,14 +61,20 @@ export class GameCatalog {
     const collected = []; let offset = args.offset; let exhausted = false;
     // Fill pages after platform-level eligibility checks without skipping games.
     for (let batch = 0; batch < 5 && collected.length < args.limit + 1 && !exhausted; batch++) {
-      const query = `${fields} ${relevance ? `search ${JSON.stringify(args.query)};` : `sort ${ordering};`} where ${where.join(' & ')}; limit 50; offset ${offset};`;
+      // IGDB intermittently returns HTTP 500 for its text search combined with
+      // complex relationship filters. Search the name index first, then apply
+      // the same eligibility and facet checks locally to every returned row.
+      const query = relevance
+        ? `${fields} search ${JSON.stringify(args.query)}; limit 50; offset ${offset};`
+        : `${fields} sort ${ordering}; where ${where.join(' & ')}; limit 50; offset ${offset};`;
       const rows = await this.request(query);
       exhausted = rows.length < 50;
       for (const row of rows) {
         offset++;
         const collection = COLLECTIONS[args.category];
         const coOp = args.category !== 'coop' || row.multiplayer_modes?.some(m => m.onlinecoop === true || m.onlinecoopmax > 1);
-        if ((!collection || collection.includes(row.id)) && coOp && isEligible(row, platformIds)) collected.push({ game: formatGame(row), after: offset });
+        const matchesGenres = !genreIds.length || row.genres?.some(g => genreIds.includes(g.id));
+        if ((!collection || collection.includes(row.id)) && coOp && matchesGenres && isEligible(row, platformIds)) collected.push({ game: formatGame(row), after: offset });
         if (collected.length === args.limit + 1) break;
       }
     }

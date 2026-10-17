@@ -32,6 +32,7 @@ export class IgdbClient {
         } catch (error) {
           if (error.response?.status === 401 && attempt === 0) { this.token = null; continue; }
           if (error.response?.status === 429 && attempt < 2) { await delay(Math.min(Number(error.response.headers['retry-after'] || 1), 3) * 1000); continue; }
+          console.error(JSON.stringify({ event: 'igdb_request_failed', endpoint, status: error.response?.status || null, code: error.code || 'UPSTREAM_ERROR' }));
           throw new AppError(503, 'Game discovery is temporarily unavailable. Please retry.', 'CATALOG_UNAVAILABLE');
         }
       }

@@ -48,6 +48,15 @@ test('discovery is paginated, curated, safely escaped, cached, and does not crea
  assert.equal(transport2.queries.length,calls+1);
 });
 
+test('name search filters online eligibility and facets locally without IGDB relationship predicates', async () => {
+ const transport=fixtures([game(126459),game(999,{multiplayer_modes:[]}),game(777,{genres:[{id:12,name:'RPG'}]}),game(778,{platforms:[{id:34,name:'Android'}],multiplayer_modes:[{platform:34,onlinemax:4}]})]);
+ const catalog=new GameCatalog(transport);
+ const result=await catalog.list({query:'Game',platforms:'6',genres:'5',limit:10});
+ assert.deepEqual(result.games.map(item=>item.igdbId),[126459]);
+ assert.match(transport.queries[0],/search "Game";/);
+ assert.doesNotMatch(transport.queries[0],/where /);
+});
+
 test('lazy IGDB upserts preserve relationships and allow distinct games with duplicate names', async () => {
  await clearDatabase();
  const provider=new GameCatalog(fixtures([game(126459,{name:'Same title'}),game(777,{name:'Same title'}),game(999,{multiplayer_modes:[]})]));
