@@ -12,16 +12,17 @@ import authRoutes from './routes/auth.routes.js';
 import lobbyRoutes from './routes/lobby.routes.js';
 import gameRoutes from './routes/game.routes.js';
 import tagRoutes from './routes/tag.routes.js';
-import { lobbyHandler } from './socket/lobbyHandler.js';
+import { LobbyRealtime } from './socket/lobbyHandler.js';
 import { csrfProtection } from './middleware/csrf.js';
 import { authenticateSocket, signingSecret } from './services/session.service.js';
 
-export async function createApplication({ sendMail, googleVerifier, catalog } = {}) {
+export async function createApplication({ sendMail, googleVerifier, catalog, iceProvider, reconnectGraceMs } = {}) {
   signingSecret();
   const app = express();
   app.locals.sendMail = sendMail;
   app.locals.googleVerifier = googleVerifier;
   app.locals.catalog = catalog;
+  app.locals.iceProvider = iceProvider;
   app.set('trust proxy', 1);
   const origins = (process.env.CLIENT_URL || 'http://localhost:5173').split(',').map(s => s.trim());
   app.use(helmet());
@@ -44,6 +45,8 @@ export async function createApplication({ sendMail, googleVerifier, catalog } = 
     io.adapter(createAdapter(pub, sub));
   }
   app.set('io', io);
+  const realtime = new LobbyRealtime(io, reconnectGraceMs ? { graceMs: reconnectGraceMs } : {});
+  app.locals.realtime = realtime;
   io.use(authenticateSocket);
   io.on('connection', socket => {
     socket.join(`session_${socket.data.sessionId}`);
@@ -51,7 +54,7 @@ export async function createApplication({ sendMail, googleVerifier, catalog } = 
     const expiry = setTimeout(() => socket.disconnect(true), Math.max(0, socket.data.sessionExpiresAt - Date.now()));
     expiry.unref();
     socket.once('disconnect', () => clearTimeout(expiry));
-    lobbyHandler(io, socket);
+    realtime.bind(socket);
   });
   app.use('/api', userRoutes);
   app.use('/api/auth', authRoutes);
@@ -64,7 +67,8 @@ export async function createApplication({ sendMail, googleVerifier, catalog } = 
     console.error(JSON.stringify({ event: 'request_failed', path: req.path, status, code: err.code || 'INTERNAL_ERROR' }));
     res.status(status).json({ error: { message: status >= 500 ? 'Something went wrong. Please retry.' : err.code === 'P2002' ? 'That value is already in use.' : err.message, code: err.code || 'REQUEST_FAILED' } });
   });
-  return { app, io, httpServer, close: async () => {
+  return { app, io, httpServer, realtime, close: async () => {
+    await realtime.stop();
     await new Promise(resolve => io.close(resolve));
     await Promise.all(redisClients.filter(client => client.isOpen).map(client => client.quit()));
   } };

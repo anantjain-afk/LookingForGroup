@@ -61,7 +61,7 @@ test('lazy IGDB upserts preserve relationships and allow distinct games with dup
  await Promise.all(Array.from({length:10},()=>resolveGame(126459,provider,true)));
  assert.equal(await prisma.game.count(),1);
  assert.equal((await client.call('/api/me/favorites/126459',{method:'POST'})).status,200);
- const lobby=await client.call('/api/lobbies',{method:'POST',body:{igdbId:126459,title:'First online lobby',maxPlayers:5,tags:[]}});
+ const lobby=await client.call('/api/lobbies',{method:'POST',body:{igdbId:126459,title:'First online lobby',platformId:6,region:'Asia',maxPlayers:5,tags:[]}});
  assert.equal(lobby.status,201); assert.equal(lobby.body.game.igdbId,126459);
  const local=await prisma.game.findUnique({where:{igdbId:126459}});
  assert.equal((await prisma.lobby.findUnique({where:{id:lobby.body.id}})).gameId,local.id);
