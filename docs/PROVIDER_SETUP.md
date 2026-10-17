@@ -24,7 +24,7 @@ Official guides: [sender verification](https://help.brevo.com/hc/en-us/articles/
 
 1. Sign up from [Open Relay](https://www.metered.ca/tools/openrelay/) and choose the free TURN service. Its published allowance is 20 GB/month; check the current dashboard limits before launch. Do not enable automatic top-ups, paid upgrades, or paid overages.
 2. Select/create an app, open TURN Server, and generate a TURN credential. Copy the REST API key shown in its `.../api/v1/turn/credentials?apiKey=...` example. This is the credential retrieval key, not a Realtime Messaging publishable key or an account management secret.
-3. Copy the app name from `https://YOUR_APP_NAME.metered.live`. Enter only `YOUR_APP_NAME`, without the protocol or suffix.
+3. Copy the app name from `https://YOUR_APP_NAME.metered.live`. Enter only `YOUR_APP_NAME`, without the protocol or suffix. Use the exact variable name `METERED_API_KEY` (not `METERED_APP_KEY`).
 4. Set locally and on Render:
 
    ```env
@@ -40,3 +40,7 @@ Official API: [retrieve TURN credentials](https://www.metered.ca/docs/turn-rest-
 ## Google sign-in
 
 The supplied Web OAuth client ID is configured on the backend. Authorized JavaScript origins must include `http://localhost:5173` and `https://looking-for-group.vercel.app` (already confirmed). This uses the Google Identity Services popup and server verification of its ID token: no client secret or backend redirect URI is required. If the consent screen is in testing, add your test Google accounts or publish the consent configuration when ready. Test both a new Google account and an existing password account's explicit Connect Google action.
+
+## Configuration check result
+
+The local Metered hostname/key-variable formatting was corrected in the ignored environment file. Brevo transactional access and one approved test email delivery were confirmed. A brief live forced-TURN browser test also passed. Copy the corrected variable names and app-name slug to Render; local `.env` changes are not deployed through Git. Google interactive sign-in, production email links, and physical-device/network checks still need to be completed on the public deployment.

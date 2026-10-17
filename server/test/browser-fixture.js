@@ -1,5 +1,7 @@
 // Local-only browser test server. Never started by the production entrypoint.
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { parse } from "dotenv";
 const url = process.env.LFG_E2E_DATABASE_URL;
 if (
   !url ||
@@ -25,10 +27,21 @@ if (migrated.status) process.exit(migrated.status);
 const { start, clearDatabase, prisma } = await import("./helpers.js");
 const { catalog, identity } = await import("./lobby-fixtures.js");
 await clearDatabase();
+const liveTurn = process.env.LFG_E2E_REAL_TURN === "true";
+if (liveTurn) {
+  const values = parse(readFileSync(new URL("../.env", import.meta.url)));
+  for (const key of ["METERED_APP_NAME", "METERED_API_KEY"]) {
+    if (!values[key])
+      throw new Error(`Missing ${key} for explicit live relay test`);
+    process.env[key] = values[key];
+  }
+}
 const runtime = await start({
   catalog: catalog(),
   sendMail: async () => {},
-  iceProvider: async () => [{ urls: "stun:127.0.0.1:9" }],
+  iceProvider: liveTurn
+    ? undefined
+    : async () => [{ urls: "stun:127.0.0.1:9" }],
 });
 // The fixture binds a separate fixed port for Vite and WebSocket connections.
 await new Promise((resolve) => runtime.httpServer.close(resolve));

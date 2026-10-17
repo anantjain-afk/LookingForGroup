@@ -7,11 +7,11 @@ The code is implemented across stacked feature branches and tested locally. It h
 - Backend: nine integration/unit test groups pass against a guarded, disposable local PostgreSQL database. These cover password login, Google provider-boundary verification, explicit linking proof, password-free Google accounts, verification/reset single use and expiry, session expiry/revocation, CSRF, safe user responses, online eligibility, mobile ports, reviewed shutdowns, input escaping, caching/deduplication, pagination, concurrent IGDB upserts, favorite and lobby relationships, atomic last-slot joins, forged socket authentication, server-derived chat identity, host permissions, private credentials, kicking/bans, multi-tab membership, reconnect expiry, frontend proxy forwarding, and rate-limit separation behind a proxy.
 - Load: 50 authenticated Socket.IO clients joined seven rooms (six rooms of eight, one of two), exchanged room-scoped chat, updated ready state, and restored five dropped connections without losing or duplicating slots. This is a short local burst test, not a Render capacity or long-running soak result. Voice/media load is not included.
 - Chromium: five browser tests pass. Public browsing, actual sorting/filter URLs, IGDB links, API failure/retry, mobile overflow, authenticated chat, private game details, ready state, opt-in microphone behavior, two-way WebRTC negotiation with fake audio devices, mute/leave voice, reconnect, denied microphone fallback, and host-game preselection are covered. Chromium runs with the third-party-cookie phaseout switch. Tests use same-origin HTTP through a local proxy and ticket-authenticated direct sockets.
-- Client lint and production build pass. Route splitting keeps the initial app bundle around 309 KB uncompressed; the voice/lobby code loads on demand.
+- Client lint and production build pass. Route splitting keeps the initial app bundle around 310 KB uncompressed; the voice/lobby code loads on demand.
 - Migration chain passes on a fresh local schema and a populated copy of the original schema. The preserved fixture account, game, and favorite relationship remain; Prisma reports no schema drift for either database. This is not a validation of the current live Neon schema. Audit a Neon branch before production migration.
 - Dependency patches remove all backend audit advisories and all frontend production dependency advisories. The frontend development polyfill toolchain still reports six low-severity transitive advisories; no forced major downgrade was applied. Recheck advisories before deployment.
 
-Provider-boundary tests use a fake Google verifier, fake email transport, and fixture ICE configuration. They do not validate real Google consent settings, email deliverability, or TURN relay allocation. Mobile testing is Chromium viewport/touch emulation, not an iOS/Safari or physical Android device result.
+The default test suite uses a fake Google verifier, fake email transport, and fixture ICE configuration. Separately, after credentials were configured, Brevo accepted one explicitly approved test email and reported its delivery. The Brevo key can access transactional email but cannot read account/sender settings, so sender configuration was not inspected through that API. Metered returned five ICE server entries. An explicit live TURN browser test passed with both clients selecting relay-to-relay candidate pairs and exchanging fake-device audio. Both browser contexts ran on one machine; this does not replace testing physical devices on different networks. Actual Google consent/sign-in and Gmail/Outlook inbox coverage remain pending. Mobile testing is Chromium viewport/touch emulation, not an iOS/Safari or physical Android device result.
 
 ## Repeat locally
 
@@ -26,6 +26,14 @@ npm run build
 npx playwright install chromium --only-shell
 LFG_E2E_DATABASE_URL=postgresql://user@127.0.0.1:5432/lfg_test_browser npm run test:e2e
 ```
+
+To explicitly use the real Metered account in a brief relay test, put the configured Metered variables in the ignored `server/.env` and run from `client`:
+
+```sh
+LFG_E2E_DATABASE_URL=postgresql://user@127.0.0.1:5432/lfg_test_browser LFG_E2E_REAL_TURN=true npm run test:e2e -- --grep "same-origin sessions"
+```
+
+This opt-in command consumes real relay quota, keeps all database activity local, forces relay transport in both browser clients, and asserts relay candidate pairs from WebRTC stats. CI uses fake ICE configuration and does not require provider secrets.
 
 The PR workflow runs these checks with a temporary PostgreSQL service. Browser fixtures exist only in `server/test`; the production entrypoint never registers their routes. Test scripts refuse non-local/non-test database names.
 

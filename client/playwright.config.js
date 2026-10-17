@@ -9,6 +9,8 @@ const frontend = {
     ? {
         env: {
           VITE_API_URL: "",
+          VITE_FORCE_TURN:
+            process.env.LFG_E2E_REAL_TURN === "true" ? "true" : "false",
           VITE_SOCKET_URL: "http://127.0.0.1:3219",
           LFG_API_PROXY_TARGET: "http://127.0.0.1:3219",
         },

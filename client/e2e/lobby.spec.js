@@ -30,6 +30,14 @@ async function player(browser, request, index, mobile = false) {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.addInitScript(() => {
+    window.peerConnections = [];
+    const NativePeer = window.RTCPeerConnection;
+    window.RTCPeerConnection = class extends NativePeer {
+      constructor(...args) {
+        super(...args);
+        window.peerConnections.push(this);
+      }
+    };
     window.micCalls = 0;
     const original = navigator.mediaDevices.getUserMedia.bind(
       navigator.mediaDevices,
@@ -49,6 +57,7 @@ test("same-origin sessions work with third-party cookies blocked; mobile chat, r
   browser,
   request,
 }, info) => {
+  test.setTimeout(process.env.LFG_E2E_REAL_TURN === "true" ? 60000 : 30000);
   const host = await player(browser, request, 0),
     member = await player(browser, request, 1, true);
   try {
@@ -89,6 +98,40 @@ test("same-origin sessions work with third-party cookies blocked; mobile chat, r
     ).toBeVisible();
     await expect.poll(() => host.page.locator("audio").count()).toBe(1);
     await expect.poll(() => member.page.locator("audio").count()).toBe(1);
+    if (process.env.LFG_E2E_REAL_TURN === "true") {
+      for (const page of [host.page, member.page]) {
+        await expect
+          .poll(
+            () =>
+              page.evaluate(async () => {
+                for (const pc of window.peerConnections) {
+                  if (pc.connectionState !== "connected") continue;
+                  const stats = await pc.getStats();
+                  for (const row of stats.values())
+                    if (
+                      row.type === "candidate-pair" &&
+                      row.state === "succeeded" &&
+                      row.nominated
+                    ) {
+                      if (
+                        stats.get(row.localCandidateId)?.candidateType ===
+                          "relay" &&
+                        stats.get(row.remoteCandidateId)?.candidateType ===
+                          "relay"
+                      )
+                        return true;
+                    }
+                }
+                return false;
+              }),
+            { timeout: 20000 },
+          )
+          .toBe(true);
+      }
+      console.log(
+        "Live TURN: both browsers selected relay-to-relay candidate pairs.",
+      );
+    }
     await host.page.getByRole("button", { name: "Mute microphone" }).click();
     await expect(
       host.page.getByRole("button", { name: "Unmute microphone" }),
