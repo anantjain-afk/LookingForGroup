@@ -1,5 +1,7 @@
 import { BACKEND_ORIGIN } from '../../deployment';
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+// HTTP requests must use Vercel's same-origin proxy so session cookies work
+// even if an older deployment still has VITE_API_URL set to Render.
+const API_BASE_URL = '';
 export const SOCKET_BASE_URL = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:3000' : BACKEND_ORIGIN);
 export class ApiError extends Error {
   constructor(message, status, code) { super(message); this.status = status; this.code = code; }
