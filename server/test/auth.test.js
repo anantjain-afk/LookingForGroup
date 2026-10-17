@@ -40,5 +40,10 @@ test('password sessions, verification, single-use reset, Google linking, and CSR
  const expired = 'a'.repeat(64);
  await prisma.emailToken.create({data:{digest:createHash('sha256').update(expired).digest('hex'),purpose:'verify',userId:row.id,expiresAt:new Date(0)}});
  assert.equal((await google.call('/api/auth/verify-email',{method:'POST',body:{token:expired}})).status,400);
+ const resetExpired='b'.repeat(64);
+ await prisma.emailToken.create({data:{digest:createHash('sha256').update(resetExpired).digest('hex'),purpose:'reset',userId:row.id,expiresAt:new Date(0)}});
+ assert.equal((await google.call('/api/auth/reset-password',{method:'POST',body:{token:resetExpired,password:'another correct horse password'}})).status,400);
+ await prisma.session.updateMany({where:{userId:row.id},data:{expiresAt:new Date(0)}});
+ assert.equal((await google.call('/api/me')).status,401);
  } finally { await runtime.close(); await prisma.$disconnect(); }
 });

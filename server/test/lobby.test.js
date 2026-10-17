@@ -20,6 +20,7 @@ test("lobby joins are atomic, identities verified, and private state protected t
     );
     const [host, a, b, outsider] = people;
     const lobby = await room(host, { maxPlayers: 2 });
+    await assert.rejects(()=>connect(runtime.base,{ticket:()=>"forged-ticket"}));
     assert.equal(
       (
         await host.client.call("/api/lobbies", {

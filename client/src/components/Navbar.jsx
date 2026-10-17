@@ -1,10 +1,10 @@
-import { Bell, User, LogOut } from "lucide-react";
+import { MessageSquare, Plus, User, LogOut } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useUserStore } from "../store/useUserStore";
 import { useToast } from "../hooks/useToast";
 import { apiPost } from "../api/client";
 import { Button } from "./ui/button";
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function Navbar() {
   const user = useUserStore((state) => state.user);
@@ -18,7 +18,7 @@ export default function Navbar() {
       await apiPost("/api/auth/logout");
       await queryClient.cancelQueries();
       queryClient.clear();
-      queryClient.setQueryData(['auth', 'me'], null);
+      queryClient.setQueryData(["auth", "me"], null);
       clearUser();
       toast({
         title: "Logged out",
@@ -35,42 +35,55 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="sticky top-0 z-50 w-full h-[72px] px-7 bg-[#0e0f11] border-b border-[#1f2226] flex items-center justify-between">
+    <nav className="sticky top-0 z-50 w-full h-[72px] px-4 sm:px-7 bg-[#0e0f11] border-b border-[#1f2226] flex items-center justify-between">
       {/* LEFT */}
       <Link to="/" className="flex items-center gap-3">
         {/* <div className="w-9 h-9 rounded-full border-2 border-[#5865F2] flex items-center justify-center">
           <div className="w-2.5 h-2.5 rounded-full bg-[#5865F2]" />
         </div> */}
-        <span className="bg-gradient-to-r from-green-600 to-emerald-700 rounded-lg px-3 py-1 text-white hover:text-gray-100 text-2xl font-semibold">LFG</span>
+        <span className="bg-gradient-to-r from-green-600 to-emerald-700 rounded-lg px-3 py-1 text-white hover:text-gray-100 text-2xl font-semibold">
+          LFG
+        </span>
       </Link>
 
       {/* CENTER */}
-        <div className="hidden sm:flex items-center gap-6">
-          <NavLink to="/">Home</NavLink>
-          <NavLink to="/browse">Browse Games</NavLink>
-          {user && <NavLink to="/profile">Profile</NavLink>}
-        </div>
+      <div className="hidden sm:flex items-center gap-6">
+        <NavLink to="/">Home</NavLink>
+        <NavLink to="/browse">Browse Games</NavLink>
+        {user && <NavLink to="/profile">Profile</NavLink>}
+      </div>
 
       {/* RIGHT */}
-      <div className="flex items-center gap-5">
+      <div className="flex items-center gap-2 sm:gap-5">
+        <a
+          href="https://github.com/anantjain-afk/LookingForGroup/issues/new"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Send feedback"
+          title="Send feedback"
+          className="text-gray-400 hover:text-emerald-400 p-2"
+        >
+          <MessageSquare size={18} />
+        </a>
         {user ? (
           <>
-            <div className="relative cursor-pointer">
-              <Bell className="w-5 h-5 text-gray-300" />
-              <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-green-500" />
-            </div>
-
-            <Link to="/host-new-lobby" className="bg-[#5865F2] hover:bg-[#4752c4] text-white font-semibold px-4 py-2 rounded-lg transition">
-              Create Lobby
+            <Link
+              to="/host-new-lobby"
+              aria-label="Create Lobby"
+              className="bg-[#5865F2] hover:bg-[#4752c4] text-white font-semibold px-4 py-2 rounded-lg transition"
+            >
+              <span className="hidden sm:inline">Create Lobby</span>
+              <Plus size={20} className="sm:hidden" />
             </Link>
 
             <div className="flex items-center gap-3">
-              <div 
-                onClick={() => navigate("/profile")}
+              <Link
+                to="/profile"
+                aria-label="Your profile"
                 className="w-10 h-10 rounded-full border-2 border-[#3cff00] flex items-center justify-center cursor-pointer hover:bg-[#3cff00]/10 transition"
               >
                 <User className="w-5 h-5 text-gray-300" />
-              </div>
+              </Link>
               <button
                 onClick={handleLogout}
                 className="text-gray-400 hover:text-red-500 transition"
@@ -104,7 +117,7 @@ export default function Navbar() {
 function NavLink({ children, to }) {
   const location = useLocation();
   const isActive = location.pathname === to;
-  
+
   return (
     <Link
       to={to}

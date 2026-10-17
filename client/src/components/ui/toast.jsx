@@ -2,14 +2,14 @@ import * as React from "react";
 import { X } from "lucide-react";
 import { cn } from "../../lib/utils";
 
-import { ToastContext } from './toast-context';
+import { ToastContext } from "./toast-context";
 
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = React.useState([]);
 
   const toast = React.useCallback(
     ({ title, description, variant = "default" }) => {
-      const id = Date.now();
+      const id = crypto.randomUUID();
       setToasts((prev) => [...prev, { id, title, description, variant }]);
 
       setTimeout(() => {
@@ -26,7 +26,7 @@ export const ToastProvider = ({ children }) => {
   return (
     <ToastContext.Provider value={{ toast }}>
       {children}
-      <div className="fixed bottom-0 right-0 z-50 flex flex-col gap-2 p-4 w-full max-w-md">
+      <div className="pointer-events-none fixed bottom-0 right-0 z-50 flex flex-col gap-2 p-4 w-full max-w-md">
         {toasts.map((t) => (
           <Toast
             key={t.id}
@@ -45,7 +45,7 @@ const Toast = ({ title, description, variant, onDismiss }) => {
   return (
     <div
       className={cn(
-        "rounded-lg border p-4 shadow-lg bg-[#111111] border-gray-800 text-gray-100 animate-in slide-in-from-bottom-full",
+        "pointer-events-auto rounded-lg border p-4 shadow-lg bg-[#111111] border-gray-800 text-gray-100 animate-in slide-in-from-bottom-full",
         variant === "destructive" && "border-red-800 bg-red-950/50",
       )}
     >

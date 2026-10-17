@@ -7,6 +7,7 @@ import { Server } from 'socket.io';
 import { createClient } from 'redis';
 import { createAdapter } from '@socket.io/redis-adapter';
 import rateLimit from 'express-rate-limit';
+import { requestBucket,rateLimitMessage } from './middleware/rate-limit.js';
 import userRoutes from './routes/userRoutes.js';
 import authRoutes from './routes/auth.routes.js';
 import lobbyRoutes from './routes/lobby.routes.js';
@@ -30,7 +31,7 @@ export async function createApplication({ sendMail, googleVerifier, catalog, ice
   app.use(express.json({ limit: '32kb' }));
   app.use(cookieParser());
   app.use('/api', csrfProtection);
-  app.use('/api', rateLimit({ windowMs: 60_000, limit: 180, standardHeaders: 'draft-7', legacyHeaders: false }));
+  app.use('/api', rateLimit({ windowMs: 60_000, limit: 600, keyGenerator:requestBucket, message:rateLimitMessage, standardHeaders: 'draft-7', legacyHeaders: false }));
   const httpServer = createServer(app);
   const io = new Server(httpServer, { cors: { origin: origins, credentials: true }, maxHttpBufferSize: 32_768 });
   let redisClients = [];
