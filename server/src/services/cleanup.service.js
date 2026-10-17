@@ -6,7 +6,7 @@ export const initCleanupService = () => {
     console.log("🧹 Cleanup Service Initialized: Running every 10 minutes");
 
     // Run every 10 minutes
-    cron.schedule("*/10 * * * *", async () => {
+    return cron.schedule("*/10 * * * *", async () => {
         console.log("🧹 Running Lobby Cleanup...");
 
         try {
