@@ -272,14 +272,14 @@ export default function LandingPage() {
                             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                               {user.favoriteGames.map((game) => (
                                 <div 
-                                  key={game.id} 
-                                  onClick={() => navigate(`/game/${game.igdbId || game.id}`)}
+                                  key={game.igdbId}
+                                  onClick={() => navigate(`/game/${game.igdbId}`)}
                                   className="group relative bg-[#151515] rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-all duration-300 border border-transparent hover:border-[#5865F2] hover:shadow-[0_0_15px_rgba(88,101,242,0.2)]"
                                 >
                                   {/* Image Container */}
                                   <div className="aspect-[3/4] w-full relative">
                                     <img 
-                                      src={game.imageUrl || "https://placehold.co/300x400/1e293b/475569?text=No+Cover"} 
+                                      src={game.cover || "https://placehold.co/300x400/1e293b/475569?text=No+Cover"}
                                       alt={game.name} 
                                       className="w-full h-full object-cover group-hover:opacity-80 transition-opacity"
                                       loading="lazy"

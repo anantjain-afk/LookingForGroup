@@ -1,48 +1,16 @@
 import prisma from '../db/config.js';
 
-import { getGameById } from './igdb.service.js';
+import { resolveGame, storedGame } from './game.service.js';
+import { parseIgdbId } from './igdb.service.js';
+import { z } from 'zod';
+import { parse, AppError } from '../lib/errors.js';
 
-export const createLobby = async (data, hostId) => {
-  const { title, description, gameId, maxPlayers, tags } = data;
-
-  // 1. Resolve Game ID (Handle Internal vs IGDB ID)
-  // Input 'gameId' is likely the IGDB ID (Int) from the frontend
-  let localGame = await prisma.game.findUnique({
-      where: { igdbId: parseInt(gameId) }
-  });
-
-  if (!localGame) {
-      // Fetch details from IGDB to create local record
-      const igdbGame = await getGameById(gameId);
-      if (!igdbGame) throw new Error("Invalid Game ID");
-      
-      // Check if the game already exists by name (e.g., from a seed script)
-      localGame = await prisma.game.findUnique({
-          where: { name: igdbGame.name }
-      });
-
-      if (localGame) {
-          // Update the existing seeded game with IGDB details
-          localGame = await prisma.game.update({
-              where: { id: localGame.id },
-              data: {
-                  igdbId: igdbGame.id,
-                  imageUrl: igdbGame.cover || localGame.imageUrl,
-                  genre: igdbGame.genres && igdbGame.genres.length > 0 ? igdbGame.genres[0] : localGame.genre
-              }
-          });
-      } else {
-          // Create new game if it doesn't exist at all
-          localGame = await prisma.game.create({
-              data: {
-                  name: igdbGame.name,
-                  igdbId: igdbGame.id,
-                  imageUrl: igdbGame.cover,
-                  genre: igdbGame.genres && igdbGame.genres.length > 0 ? igdbGame.genres[0] : "Unknown"
-              }
-          });
-      }
-  }
+export const createLobby = async (input, hostId, catalog) => {
+  const data = parse(z.object({ igdbId: z.number().int().positive(), title: z.string().trim().min(3).max(80), description: z.string().max(1200).optional(), maxPlayers: z.coerce.number().int().min(2).max(20).default(5), tags: z.array(z.string().min(1).max(64)).max(12).default([]) }).strict(), input);
+  const { title, description, igdbId, maxPlayers } = data;
+  const tags = [...new Set(data.tags)];
+  if (tags.length && await prisma.tag.count({ where: { id: { in: tags } } }) !== tags.length) throw new AppError(400, 'One or more lobby tags are invalid.', 'VALIDATION_ERROR');
+  const { local: localGame } = await resolveGame(igdbId, catalog, true);
 
   // 2. Create Lobby linked to the local Game ID
   const lobby = await prisma.lobby.create({
@@ -80,49 +48,17 @@ export const createLobby = async (data, hostId) => {
 
   return {
     ...lobby,
+    game: storedGame(lobby.game),
+    credentials: undefined,
     tags: lobby.tags.map(t => t.tag)
   };
 };
 
 export const getAllLobbies = async (filters = {}) => {
-  const { gameId, tags, ...otherFilters } = filters;
-  
-  const where = {
-     status: 'OPEN',
-     ...otherFilters
-  };
-
-  // Filter by Tags (if provided)
-  if (tags) {
-      const tagIds = tags.split(',').filter(id => id.trim() !== '');
-      if (tagIds.length > 0) {
-          where.tags = {
-              some: {
-                  tagId: { in: tagIds }
-              }
-          };
-      }
-  }
-
-  if (gameId) {
-      // If It's a number (IGDB ID), find the local ID first
-      // Because Lobby.gameId stores the local CUID
-      const localGame = await prisma.game.findUnique({
-          where: { igdbId: parseInt(gameId) } // Assuming we added igdbId @unique
-      });
-      
-      if (localGame) {
-           where.gameId = localGame.id;
-      } else {
-           // If passed ID is a CUID string (less likely from our UI but possible)
-           if (typeof gameId === 'string' && gameId.length > 20) {
-               where.gameId = gameId;
-           } else {
-               return []; // Game not found locally, so no lobbies
-           }
-      }
-  }
-
+  const data = parse(z.object({ igdbId: z.union([z.string(), z.number()]).optional(), tags: z.string().max(1000).optional() }).strict(), filters);
+  const where = { status: { in: ['OPEN', 'FULL'] }, game: { igdbId: { not: null } } };
+  if (data.igdbId) where.game = { igdbId: parseIgdbId(data.igdbId) };
+  if (data.tags) where.tags = { some: { tagId: { in: data.tags.split(',').filter(Boolean) } } };
   const lobbies = await prisma.lobby.findMany({
     where,
     orderBy: { createdAt: 'desc' },
@@ -145,8 +81,9 @@ export const getAllLobbies = async (filters = {}) => {
     }
   });
 
-  return lobbies.map(lobby => ({
+  return lobbies.filter(lobby => storedGame(lobby.game)).map(({ credentials, ...lobby }) => ({
     ...lobby,
+    game: storedGame(lobby.game),
     tags: lobby.tags.map(t => t.tag)
   }));
 };
@@ -176,6 +113,7 @@ export const getLobbyById = async (id) => {
 
     return {
         ...lobby,
+        game: storedGame(lobby.game),
         tags: lobby.tags.map(t => t.tag)
     };
 };

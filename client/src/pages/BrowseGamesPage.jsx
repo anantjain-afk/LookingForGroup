@@ -19,7 +19,7 @@ const fetchGames = async (params) => {
     });
 
     const res = await apiGet(`/api/games?${searchParams.toString()}`);
-    return res;
+    return res.games;
 };
 
 // Reusable Game Card Component
@@ -75,8 +75,8 @@ const GameSection = ({ title, games, isLoading, onGameClick }) => {
             
             <div className="flex gap-4 overflow-x-auto scrollbar-hide  pb-6 scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent px-1">
                 {games.map(game => (
-                    <div key={game.id} className="min-w-[160px] md:min-w-[200px] w-[160px] md:w-[200px]">
-                        <GameCard game={game} onClick={() => onGameClick(game.id)} />
+                    <div key={game.igdbId} className="min-w-[160px] md:min-w-[200px] w-[160px] md:w-[200px]">
+                        <GameCard game={game} onClick={() => onGameClick(game.igdbId)} />
                     </div>
                 ))}
             </div>
@@ -243,7 +243,7 @@ export default function BrowseGamesPage() {
                                 ) : (
                                     <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
                                         {Array.isArray(searchResults) && searchResults.map(game => (
-                                            <GameCard key={game.id} game={game} onClick={() => handleGameClick(game.id)} />
+                                            <GameCard key={game.igdbId} game={game} onClick={() => handleGameClick(game.igdbId)} />
                                         ))}
                                         {Array.isArray(searchResults) && searchResults.length === 0 && (
                                             <div className="col-span-full py-20 text-center">

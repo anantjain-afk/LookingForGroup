@@ -36,4 +36,12 @@ Render can sleep when idle. Treat wake-up failures as recoverable network errors
 
 ## Milestone branches
 
+## Game catalog maintenance
+
+Public game endpoints return `{ games, nextOffset }`; individual games expose `igdbId`, never an overloaded local `id`. Lobby creation accepts `igdbId`. Only a favorite or lobby creates a new database Game row. Existing records may have their cached metadata refreshed on detail lookup.
+
+`server/src/config/game-catalog.js` contains reviewed featured collections, online metadata exceptions, supported-platform corrections and known shutdown exclusions, with source links. It is deliberately an editable reviewed catalog, not an automatic guarantee that every historical server is still live. A generic multiplayer/co-op tag is insufficient. Missing platform evidence leaves hosting unavailable for that platform until reviewed; platform ownership does not imply cross-play.
+
+Run `npm run games:review -- --refresh` to inspect existing IGDB-linked records. Add `--apply` to persist refreshed metadata after checking the isolated database. Unresolved records remain stored but are hidden from new selections and favorite displays. Map them explicitly using `npm run games:review -- --map /path/to/reviewed.json` (dry-run), then add `--apply` after reviewing the output. The JSON is an array of `{ "localId": "existing-cuid", "igdbId": 126459 }`. A reviewed merge rewires existing favorites and lobbies transactionally; names are never matched automatically. Keep the source mapping with your deployment notes.
+
 Each launch milestone is committed on a separate feature branch based on the previous milestone. Review and merge them in order, or use the final branch to review the complete upgrade. Branding remains intentionally unchanged until a name is selected.

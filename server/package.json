@@ -10,7 +10,8 @@
     "test": "node scripts/test.js",
     "db:audit": "node scripts/db-audit.js",
     "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate deploy"
+    "db:migrate": "prisma migrate deploy",
+    "games:review": "node scripts/review-games.js"
   },
   "keywords": [],
   "author": "",

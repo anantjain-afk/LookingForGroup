@@ -8,8 +8,7 @@ export default function GameGrid() {
     queryKey: ['popularGames'],
     queryFn: async () => {
       const res = await apiGet('/api/games');
-      console.log(res);
-      return res;
+      return res.games;
     }
   });
 
@@ -43,8 +42,8 @@ export default function GameGrid() {
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {gameList.map((game) => (
           <div 
-            key={game.id} 
-            onClick={() => navigate(`/game/${game.id}`)}
+            key={game.igdbId}
+            onClick={() => navigate(`/game/${game.igdbId}`)}
             className="group relative bg-[#151515] rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-all duration-300 border border-transparent hover:border-[#5865F2] hover:shadow-[0_0_15px_rgba(60,255,0,0.2)]"
           >
             {/* Image Container */}

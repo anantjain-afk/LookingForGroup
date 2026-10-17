@@ -13,8 +13,8 @@ export default function GameSearch({ onSelect }) {
     queryFn: async () => {  
       if (!search || search.length < 2) return [];
       
-      const res = await apiGet(`/api/games?query=${search}`);
-      return res; 
+      const res = await apiGet(`/api/games?query=${encodeURIComponent(search)}`);
+      return res.games;
     },
     enabled: search.length > 2,
   });
@@ -36,7 +36,8 @@ export default function GameSearch({ onSelect }) {
         value={search}
         onChange={(e) => {
             setSearch(e.target.value);
-            setSelectedGame(null); // Clear selection on edit
+            setSelectedGame(null);
+            onSelect?.(null);
         }}
         className="bg-[#424549] border-[#7289da] text-white focus:ring-[#7289da] focus:border-[#7289da] placeholder:text-gray-400"
       />
@@ -52,7 +53,7 @@ export default function GameSearch({ onSelect }) {
         <div className="border border-[#7289da] rounded-md bg-[#424549] p-2 max-h-60 overflow-y-auto mt-2 absolute z-10 w-full max-w-2xl shadow-xl">
           {gameList.map((game) => (
             <div 
-              key={game.id} 
+              key={game.igdbId}
               className="flex items-center gap-3 p-2 hover:bg-[#7289da] cursor-pointer rounded transition-colors"
               onClick={() => handleSelect(game)}
             >

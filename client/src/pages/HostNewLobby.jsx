@@ -52,7 +52,7 @@ const HostNewLobby = () => {
         setIsCreating(true);
         try {
             const payload = {
-                gameId: selectedGame.id,
+                igdbId: selectedGame.igdbId,
                 title: formData.title,
                 description: formData.description,
                 tags: selectedTags,

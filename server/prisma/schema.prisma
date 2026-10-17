@@ -57,9 +57,11 @@ model EmailToken {
 model Game {
   id        String   @id @default(cuid())
   igdbId    Int?     @unique
-  name      String   @unique
+  name      String
   genre     String?
   imageUrl  String?
+  metadata  Json?
+  syncedAt  DateTime?
   lobbies   Lobby[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -16,11 +16,12 @@ import { lobbyHandler } from './socket/lobbyHandler.js';
 import { csrfProtection } from './middleware/csrf.js';
 import { authenticateSocket, signingSecret } from './services/session.service.js';
 
-export async function createApplication({ sendMail, googleVerifier } = {}) {
+export async function createApplication({ sendMail, googleVerifier, catalog } = {}) {
   signingSecret();
   const app = express();
   app.locals.sendMail = sendMail;
   app.locals.googleVerifier = googleVerifier;
+  app.locals.catalog = catalog;
   app.set('trust proxy', 1);
   const origins = (process.env.CLIENT_URL || 'http://localhost:5173').split(',').map(s => s.trim());
   app.use(helmet());

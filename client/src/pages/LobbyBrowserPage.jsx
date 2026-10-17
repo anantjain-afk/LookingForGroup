@@ -60,12 +60,7 @@ export default function LobbyBrowserPage() {
   const activeLobbyCount = lobbies?.length || 0;
   
   // Check if current game is in favorites
-  const isFavorite = user?.favoriteGames?.some(g => {
-      // gameId from URL could be IGDB ID or local ID
-      // game object from API has both id and igdbId
-      if (!game) return false;
-      return g.id === game.id || g.igdbId === game.id || g.igdbId === parseInt(gameId) || g.id === gameId;
-  });
+  const isFavorite = user?.favoriteGames?.some(g => g.igdbId === game?.igdbId);
 
   const toggleFavorite = async () => {
       if (!user || !game || isUpdatingFavorite) return;
@@ -73,9 +68,7 @@ export default function LobbyBrowserPage() {
       setIsUpdatingFavorite(true);
       try {
           let updatedGames;
-          // The API for add/remove favorites accepts either IGDB ID or local ID.
-          // game.id from getGameDetails might be the IGDB ID (since it's fetched from IGDB or DB).
-          const idToUse = game.id || gameId; 
+          const idToUse = game.igdbId;
           
           if (isFavorite) {
               updatedGames = await apiDelete(`/api/me/favorites/${idToUse}`);

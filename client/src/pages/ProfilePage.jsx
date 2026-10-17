@@ -65,7 +65,7 @@ export default function ProfilePage() {
               setIsSearchingGames(true);
               try {
                   const results = await apiGet(`/api/games?query=${encodeURIComponent(gameSearchQuery)}`);
-                  setGameSearchResults(results);
+                  setGameSearchResults(results.games);
               } catch (error) {
                   console.error(error);
               } finally {
@@ -347,13 +347,13 @@ export default function ProfilePage() {
                                         <div className="p-3 text-center text-sm text-gray-400">Searching...</div>
                                     ) : gameSearchResults.length > 0 ? (
                                         gameSearchResults.map(game => (
-                                            <div key={game.id} className="flex items-center justify-between p-2 hover:bg-white/5 border-b border-white/5 last:border-0">
+                                            <div key={game.igdbId} className="flex items-center justify-between p-2 hover:bg-white/5 border-b border-white/5 last:border-0">
                                                 <div className="flex items-center gap-3 truncate">
                                                     {game.cover && <img src={game.cover} className="w-8 h-8 rounded object-cover" />}
                                                     <span className="text-sm truncate">{game.name}</span>
                                                 </div>
                                                 <button 
-                                                    onClick={() => handleAddGame(game.id)}
+                                                    onClick={() => handleAddGame(game.igdbId)}
                                                     className="p-1.5 bg-[#5865F2]/20 text-[#5865F2] rounded hover:bg-[#5865F2] hover:text-white transition"
                                                 >
                                                     <Plus size={14} />
@@ -370,16 +370,16 @@ export default function ProfilePage() {
 
                     <div className="grid grid-cols-4 gap-4">
                          {activeUser.favoriteGames?.map(game => (
-                             <div key={game.id} className="flex flex-col items-center gap-2">
+                             <div key={game.igdbId} className="flex flex-col items-center gap-2">
                                  <div className="w-full aspect-square bg-slate-800 rounded-lg border border-white/5 relative group overflow-hidden">
-                                     {game.imageUrl ? (
-                                         <img src={game.imageUrl} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition" />
+                                     {game.cover ? (
+                                         <img src={game.cover} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition" />
                                      ) : (
                                          <div className="w-full h-full flex items-center justify-center p-2 text-center text-xs text-gray-400">{game.name}</div>
                                      )}
                                      {isEditing && (
                                          <button 
-                                            onClick={() => handleRemoveGame(game.id)}
+                                            onClick={() => handleRemoveGame(game.igdbId)}
                                             className="absolute top-1 right-1 p-1 bg-red-500/80 text-white rounded opacity-0 group-hover:opacity-100 transition hover:bg-red-600"
                                          >
                                              <Trash2 size={12} />
