@@ -1,686 +1,588 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { io } from "socket.io-client";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   Mic,
   Headphones,
-  Settings,
   Send,
   User,
-  ShieldAlert,
   LogOut,
   Copy,
-  RefreshCw,
   XCircle,
+  Users,
 } from "lucide-react";
-
 import { useUserStore } from "../store/useUserStore";
-import { useToast } from "../components/ui/toast";
+import { useToast } from "../hooks/useToast";
 import { apiPatch } from "../api/client";
-import { cn } from "../lib/utils";
+import { sendAction, createLobbySocket } from "../features/lobby/socket";
+import { useWebRTC } from "../hooks/useWebRTC";
 import ConfirmationModal from "../components/ConfirmationModal";
 import UserProfileLink from "../components/UserProfileLink";
-import { useWebRTC } from "../hooks/useWebRTC";
 
+const mergeMessages = (a, b) =>
+  [...new Map([...a, ...b].map((item) => [item.id, item])).values()]
+    .sort((x, y) => x.timestamp.localeCompare(y.timestamp))
+    .slice(-100);
 export default function LobbyPage() {
   const { lobbyId } = useParams();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const { user } = useUserStore();
-
-  // State
-  const [socket, setSocket] = useState(null);
-  const [lobby, setLobby] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [isConnected, setIsConnected] = useState(false);
-
-  // UI State
-  const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
-
-  // Inputs
-  const [messageInput, setMessageInput] = useState("");
-  const [credentials, setCredentials] = useState("");
-
-  // Refs
-  const messagesEndRef = useRef(null);
-
-  // Auto-scroll chat
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-  useEffect(scrollToBottom, [messages]);
-  useEffect(scrollToBottom, [messages]);
-
-  // Voice Chat Hook
-  const {
-    joinVoice,
-    cleanup: cleanupVoice,
-    streams,
-    isMuted,
-    isDeafened,
-    toggleMute,
-    toggleDeafen,
-    syncPeers,
-  } = useWebRTC(lobbyId, user?.id, socket);
-
-  // Track when voice is ready
-  const [voiceReady, setVoiceReady] = useState(false);
-
-  // Auto-join voice when connected
+  const { toast } = useToast();
+  const [lobby, setLobby] = useState(null),
+    [messages, setMessages] = useState([]),
+    [connection, setConnection] = useState("connecting"),
+    [error, setError] = useState("");
+  const [message, setMessage] = useState(""),
+    [credentials, setCredentials] = useState(""),
+    [showSquad, setShowSquad] = useState(false),
+    [confirm, setConfirm] = useState(false),
+    [audioBlocked, setAudioBlocked] = useState(false);
+  const bottom = useRef(null),
+    dirty = useRef(false);
+  const [socket] = useState(createLobbySocket);
+  const voice = useWebRTC(lobbyId, user.id, socket);
+  const { cleanup: cleanupVoice } = voice;
   useEffect(() => {
-    if (isConnected) {
-      joinVoice().then((success) => {
-        if (success) {
-          setVoiceReady(true);
-        }
-      });
-    }
-    return () => {
-      cleanupVoice();
-      setVoiceReady(false);
+    let active = true;
+    const update = (state) => {
+      if (!active) return;
+      setLobby(state);
+      if (!dirty.current) setCredentials(state.credentials || "");
     };
-  }, [isConnected, joinVoice, cleanupVoice]);
-
-  // Sync peers when lobby updates AND voice is ready
-  // Use a ref to track if we've already synced for the current participant list
-  const lastSyncedParticipants = useRef(null);
-
-  useEffect(() => {
-    if (!voiceReady || !lobby || !lobby.participants) return;
-
-    // Create a stable comparison string for participants
-    const currentParticipants = lobby.participants
-      .map((p) => p.userId)
-      .sort()
-      .join(",");
-
-    // Only sync if the participant list actually changed
-    if (lastSyncedParticipants.current !== currentParticipants) {
-      console.log("Syncing peers for participants:", currentParticipants);
-      syncPeers(lobby.participants);
-      lastSyncedParticipants.current = currentParticipants;
-    }
-  }, [voiceReady, lobby, syncPeers]);
-  // Socket Connection Effect
-  useEffect(() => {
-    if (!user || !lobbyId) return;
-
-    // 1. Connect
-    const socketUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
-    const newSocket = io(socketUrl, {
-      withCredentials: true,
-      reconnectionAttempts: 5,
-    });
-
-    setSocket(newSocket);
-
-    // 2. Setup Listeners
-    newSocket.on("connect", () => {
-      setIsConnected(true);
-      // Join immediately upon connection
-      newSocket.emit("join_lobby", { lobbyId, userId: user.id });
-    });
-
-    newSocket.on("lobby_updated", (updatedLobby) => {
-      setLobby(updatedLobby);
-      setCredentials(updatedLobby?.credentials || "");
-    });
-
-    newSocket.on("new_message", (msg) => {
-      setMessages((prev) => [...prev, msg]);
-    });
-
-    newSocket.on("player_kicked", ({ userId }) => {
-      if (userId === user.id) {
-        toast({
-          title: "Kicked",
-          description: "You have been kicked from the lobby.",
-          variant: "destructive",
-        });
-        navigate("/browse");
+    const connected = async () => {
+      try {
+        const result = await sendAction(socket, "join_lobby", { lobbyId });
+        if (!active) return;
+        update(result.lobby);
+        setMessages((old) => mergeMessages(result.messages, old));
+        setConnection("connected");
+        setError("");
+      } catch (err) {
+        if (active) {
+          setConnection("error");
+          setError(err.message);
+        }
       }
-    });
-
-    newSocket.on("LOBBY_DISBANDED", () => {
+    };
+    const disconnected = () => {
+      if (active) setConnection("reconnecting");
+    };
+    const failed = (err) => {
+      if (active) {
+        setConnection("error");
+        setError(
+          socket.ticketError ||
+            err.message ||
+            "Could not connect. Please retry.",
+        );
+      }
+    };
+    const incoming = (entry) => {
+      if (active) setMessages((old) => mergeMessages(old, [entry]));
+    };
+    const removed = () => {
+      cleanupVoice();
+      toast({ title: "You left the lobby" });
+      navigate("/browse", { replace: true });
+    };
+    const kicked = () => {
+      cleanupVoice();
       toast({
-        title: "Lobby Closed",
-        description: "The host has closed the lobby.",
-        variant: "default",
+        title: "Removed from lobby",
+        description: "The host removed you from this lobby.",
+        variant: "destructive",
       });
-      navigate("/browse");
-    });
-
-    newSocket.on("error", (err) => {
+      navigate("/browse", { replace: true });
+    };
+    const closed = () => {
+      cleanupVoice();
+      toast({ title: "Lobby closed" });
+      navigate("/browse", { replace: true });
+    };
+    socket.on("connect", connected);
+    socket.on("disconnect", disconnected);
+    socket.on("connect_error", failed);
+    socket.on("lobby_updated", update);
+    socket.on("new_message", incoming);
+    socket.on("lobby_left", removed);
+    socket.on("player_kicked", kicked);
+    socket.on("LOBBY_DISBANDED", closed);
+    socket.connect();
+    return () => {
+      active = false;
+      socket.off("connect", connected);
+      socket.off("disconnect", disconnected);
+      socket.off("connect_error", failed);
+      socket.off("lobby_updated", update);
+      socket.off("new_message", incoming);
+      socket.off("lobby_left", removed);
+      socket.off("player_kicked", kicked);
+      socket.off("LOBBY_DISBANDED", closed);
+      socket.disconnect();
+    };
+  }, [socket, lobbyId, navigate, toast, cleanupVoice]);
+  useEffect(() => {
+    bottom.current?.scrollIntoView({ behavior: "auto" });
+  }, [messages]);
+  async function action(event, payload = {}) {
+    try {
+      return await sendAction(socket, event, payload);
+    } catch (err) {
       toast({
-        title: "Error",
+        title: "Action failed",
         description: err.message,
         variant: "destructive",
       });
-      // If "Lobby not found" or "Lobby is full" on join, maybe redirect?
-      if (
-        err.message === "Lobby not found" ||
-        err.message === "Lobby is full"
-      ) {
-        setTimeout(() => navigate("/browse"), 2000);
-      }
-    });
-
-    // 3. Cleanup
-    return () => {
-      newSocket.off("connect");
-      newSocket.off("lobby_updated");
-      newSocket.off("new_message");
-      newSocket.off("player_kicked");
-      newSocket.off("LOBBY_DISBANDED");
-      newSocket.off("error");
-      newSocket.disconnect();
-    };
-  }, [lobbyId, user, navigate, toast]);
-
-  // Handlers
-  const handleSendMessage = () => {
-    if (!messageInput.trim() || !socket) return;
-
-    socket.emit("send_message", {
-      message: messageInput,
-      user: {
-        id: user.id,
-        username: user.username,
-        avatar: user.avatar,
-      },
-    });
-    setMessageInput("");
-  };
-
-  const handleToggleReady = () => {
-    if (!socket) return;
-    socket.emit("toggle_ready");
-  };
-
-  const handleLeaveLobby = () => {
-    if (socket) {
-      socket.emit("leave_lobby");
-      socket.disconnect();
+      return null;
     }
-    navigate("/");
-  };
-
-  const handleKickPlayer = (targetUserId) => {
-    if (!socket) return;
-    socket.emit("kick_player", { targetUserId });
-  };
-
-  const handleCloseLobby = async () => {
+  }
+  async function send(event) {
+    event.preventDefault();
+    if (!message.trim()) return;
+    const result = await action("send_message", { message: message.trim() });
+    if (result) setMessage("");
+  }
+  async function saveCredentials() {
+    const result = await action("update_credentials", { credentials });
+    if (result) {
+      dirty.current = false;
+      toast({ title: "Game details saved" });
+    }
+  }
+  async function closeLobby() {
     try {
       await apiPatch(`/api/lobbies/${lobbyId}/close`);
-      // Note: Navigation handled by socket event LOBBY_DISBANDED
+      navigate("/browse", { replace: true });
     } catch (err) {
-      console.error(err);
       toast({
-        title: "Error",
-        description: "Failed to close lobby",
+        title: "Could not close lobby",
+        description: err.message,
         variant: "destructive",
       });
     }
-  };
-
-  const handleUpdateCredentials = () => {
-    if (!socket || !isHost) return;
-    socket.emit("update_credentials", { credentials });
-    toast({ title: "Saved", description: "Lobby credentials updated." });
-  };
-
-  const handleCopyCredentials = () => {
-    navigator.clipboard.writeText(credentials);
-    toast({
-      title: "Copied!",
-      description: "Credentials copied to clipboard.",
-    });
-  };
-
-  // --- Render Helpers ---
-
-  if (!user || !lobbyId) {
-    return (
-      <div className="h-screen bg-[#313338] text-white flex items-center justify-center">
-        Loading Lobby...
-      </div>
-    );
   }
-
-  if (!isConnected && !lobby) {
-    return (
-      <div className="h-screen bg-[#313338] text-white flex items-center justify-center">
-        Connecting to server...
-      </div>
-    );
+  async function invite() {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      toast({ title: "Invite link copied" });
+    } catch {
+      toast({ title: "Copy this page’s address to invite a teammate." });
+    }
   }
-
-  // If connected strictly but no lobby data yet? (Usually comes fast)
-  if (!lobby) {
-    return (
-      <div className="h-screen bg-[#313338] text-white flex items-center justify-center">
-        Fetching lobby details...
-      </div>
-    );
+  async function leave() {
+    if (await action("leave_lobby")) navigate("/browse", { replace: true });
   }
-
-  const isHost = lobby.hostId === user.id;
-  const activePlayers = lobby.participants || [];
-  const emptySlots = Math.max(
-    0,
-    (lobby.maxPlayers || 5) - activePlayers.length,
-  );
-  const myParticipantRes = activePlayers.find((p) => p.userId === user.id);
-  const amIReady = myParticipantRes?.isReady || false;
-
+  const connected = connection === "connected";
+  const host = lobby?.hostId === user.id;
+  const players = lobby?.participants || [];
+  const ready = players.filter((p) => p.isReady).length;
+  const me = players.find((p) => p.userId === user.id);
+  if (!lobby)
+    return (
+      <main className="h-[100dvh] bg-[#232428] text-gray-200 grid place-items-center p-6">
+        <div className="text-center space-y-4">
+          <h1 className="text-xl font-bold">
+            {connection === "error"
+              ? "Could not join the lobby"
+              : "Connecting to your squad…"}
+          </h1>
+          <p className="text-sm text-gray-400 max-w-md">
+            {error || "The server may need a moment to wake up."}
+          </p>
+          <button
+            className="text-emerald-400 px-4 py-2"
+            onClick={() =>
+              socket.connected
+                ? sendAction(socket, "join_lobby", { lobbyId })
+                    .then((result) => {
+                      setLobby(result.lobby);
+                      setConnection("connected");
+                      setError("");
+                    })
+                    .catch((err) => setError(err.message))
+                : socket.connect()
+            }
+          >
+            Retry connection
+          </button>
+          <button
+            className="text-gray-400 px-4 py-2"
+            onClick={() => navigate("/browse")}
+          >
+            Back to games
+          </button>
+        </div>
+      </main>
+    );
   return (
-    <div className="h-screen flex flex-col bg-[#313338] text-gray-100 font-sans overflow-hidden">
-      {/* Confirmation Modal */}
+    <main className="h-[100dvh] flex flex-col bg-[#313338] text-gray-100 overflow-hidden">
       <ConfirmationModal
-        isOpen={isCloseModalOpen}
-        onClose={() => setIsCloseModalOpen(false)}
-        onConfirm={handleCloseLobby}
-        title="Close Lobby?"
-        description="Are you sure you want to close this lobby? All participants will be removed and the lobby will be deleted."
-        confirmText="Yes, Close Lobby"
+        isOpen={confirm}
+        onClose={() => setConfirm(false)}
+        onConfirm={closeLobby}
+        title="Close lobby?"
+        description="This ends the lobby for everyone. You can create another whenever you’re ready."
+        confirmText="Close Lobby"
         cancelText="Cancel"
       />
-
-      {/* MAIN CONTENT AREA (Chat + Sidebar) */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* LEFT: CHAT AREA */}
-        <div className="flex-1 flex flex-col relative min-w-0">
-          {/* Header */}
-          <div className="h-12 border-b border-[#1b1c1e] flex items-center px-4 justify-between bg-[#313338] shadow-sm z-10">
-            <div className="flex items-center gap-3 overflow-hidden">
-              <h2 className="font-bold text-white text-lg truncate flex items-center gap-2">
-                {lobby.title}
-              </h2>
-              <div className="hidden md:flex gap-2">
-                {lobby.tags?.map((tag) => (
-                  <span
-                    key={tag.id}
-                    className="bg-[#4566dd] text-xs font-medium px-2 py-0.5 rounded text-gray-300"
-                  >
-                    {tag.name}
-                  </span>
-                ))}
-              </div>
-            </div>
-            <div className="text-emerald-500 text-xs font-mono">
-              {lobby.game?.name}
-            </div>
-          </div>
-
-          {/* System Alert */}
-          <div className="bg-red-500/10 border-l-4 border-red-500 p-3 mx-4 mt-4 rounded-r-md flex items-center gap-3 shrink-0">
-            <ShieldAlert className="text-red-500" size={20} />
-            <span className="text-red-200 text-sm font-medium">
-              🛑 Vibe Check: No toxic behavior. We are here to win, not to
-              whine.
+      <header className="min-h-14 px-4 py-2 border-b border-[#1b1c1e] flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="font-bold truncate">{lobby.title}</h1>
+          <p className="text-xs text-emerald-400 truncate">
+            {lobby.game?.name} · {lobby.region || "Region unspecified"}
+            {lobby.language ? ` · ${lobby.language}` : ""}
+          </p>
+        </div>
+        <button
+          onClick={() => setShowSquad(!showSquad)}
+          className="md:hidden px-3 py-2 rounded bg-[#232428] text-sm flex items-center gap-2"
+        >
+          <Users size={16} />
+          {players.length}/{lobby.maxPlayers}
+        </button>
+        <span
+          className={`hidden md:block text-xs ${connected ? "text-emerald-400" : "text-amber-300"}`}
+        >
+          {connected
+            ? "Connected"
+            : connection === "error"
+              ? "Connection failed"
+              : "Reconnecting…"}
+        </span>
+      </header>
+      {lobby.tags?.length > 0 && (
+        <div
+          aria-label="Lobby tags"
+          className="flex gap-2 overflow-x-auto px-4 py-2 bg-[#292b30] border-b border-[#1b1c1e]"
+        >
+          {lobby.tags.map((tag) => (
+            <span
+              key={tag.id}
+              className="shrink-0 rounded-full border border-[#7289da]/40 bg-[#7289da]/15 px-2.5 py-1 text-xs text-[#c6ccff]"
+            >
+              {tag.name}
             </span>
+          ))}
+        </div>
+      )}
+      {!connected && (
+        <div
+          role="status"
+          className="px-4 py-2 bg-amber-950 text-amber-200 text-sm flex justify-between gap-3"
+        >
+          <span>
+            {error ||
+              "Connection interrupted. Your place is reserved while you reconnect."}
+          </span>
+          <button
+            className="underline shrink-0"
+            onClick={() => socket.connect()}
+          >
+            Retry
+          </button>
+        </div>
+      )}
+      <div className="flex flex-1 min-h-0">
+        <section
+          className={`${showSquad ? "hidden md:flex" : "flex"} flex-col flex-1 min-w-0`}
+          aria-label="Lobby chat"
+        >
+          <div className="m-4 px-4 py-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-200 text-sm">
+            Find your rhythm. Be kind to your teammates.
           </div>
-
-          {/* Messages Stream */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-[#1a1b1e] scrollbar-track-transparent">
-            {/* Welcome Message (Static) */}
-            <div className="flex gap-3 group opacity-70">
-              <div className="w-10 flex justify-center">
-                <ShieldAlert size={16} />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-baseline gap-2">
-                  <span className="font-medium text-red-400">System</span>
-                  <span className="text-[10px] text-gray-400">Just now</span>
-                </div>
-                <p className="text-gray-300 text-sm leading-relaxed">
-                  Welcome to the lobby! Waiting for players...
-                </p>
-              </div>
-            </div>
-
-            {messages.map((msg, idx) => (
-              <div
-                key={idx}
-                className="flex gap-3 group animate-in fade-in duration-300"
-              >
-                <div className="w-10 h-10 rounded-full bg-gray-600 flex-shrink-0 flex items-center justify-center overflow-hidden">
-                  {msg.user?.avatar ? (
-                    <img src={msg.user.avatar} className="w-full h-full" />
+          <div
+            className="flex-1 overflow-y-auto px-4 pb-4 space-y-4"
+            aria-live="polite"
+          >
+            <p className="text-gray-400 text-sm">
+              Welcome to the lobby. Invite a teammate and ready up.
+            </p>
+            {messages.map((entry) => (
+              <div key={entry.id} className="flex gap-3">
+                <div className="w-9 h-9 rounded-full bg-gray-600 shrink-0 grid place-items-center">
+                  {entry.user?.avatar ? (
+                    <img
+                      src={entry.user.avatar}
+                      alt=""
+                      className="w-full h-full rounded-full object-cover"
+                    />
                   ) : (
-                    <User size={20} />
+                    <User size={18} />
                   )}
                 </div>
-
-                <div className="flex-1">
+                <div className="min-w-0">
                   <div className="flex items-baseline gap-2">
-                    <span className="font-medium hover:underline cursor-pointer text-white">
-                      {msg.user?.username || "Unknown"}
+                    <span className="font-semibold text-sm">
+                      {entry.user?.username}
                     </span>
-                    <span className="text-[10px] text-gray-400">
-                      {msg.timestamp
-                        ? new Date(msg.timestamp).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
-                        : ""}
-                    </span>
+                    <time className="text-xs text-gray-500">
+                      {new Date(entry.timestamp).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </time>
                   </div>
-                  <p className="text-gray-300 text-sm leading-relaxed">
-                    {msg.text}
+                  <p className="text-sm text-gray-300 break-words whitespace-pre-wrap">
+                    {entry.text}
                   </p>
                 </div>
               </div>
             ))}
-            <div ref={messagesEndRef} />
+            <div ref={bottom} />
           </div>
-
-          {/* Input Area */}
-          <div className="p-4 bg-[#313338] shrink-0">
-            <div className="relative bg-[#383a40] rounded-lg">
+          <form onSubmit={send} className="p-4">
+            <div className="flex bg-[#383a40] rounded-lg">
               <input
-                type="text"
-                placeholder={`Message #${lobby.title.toLowerCase().replace(/\s+/g, "-")}`}
-                className="w-full bg-transparent text-white p-3 pr-10 focus:outline-none placeholder-gray-500 text-sm"
-                value={messageInput}
-                onChange={(e) => setMessageInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                aria-label="Lobby message"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                maxLength={1000}
+                disabled={!connected}
+                placeholder="Message your squad…"
+                className="w-full bg-transparent p-3 text-sm focus:outline-none disabled:opacity-50"
               />
               <button
-                onClick={handleSendMessage}
-                className="absolute right-3 top-3 text-gray-400 hover:text-white transition-colors"
+                aria-label="Send message"
+                disabled={!connected || !message.trim()}
+                className="px-4 text-gray-300 disabled:opacity-40"
               >
                 <Send size={18} />
               </button>
             </div>
+          </form>
+        </section>
+        <aside
+          aria-label="Squad members"
+          className={`${showSquad ? "flex" : "hidden md:flex"} flex-col w-full md:w-[300px] shrink-0 bg-[#2b2d31] border-l border-[#1f2023]`}
+        >
+          <div className="p-4 border-b border-gray-800">
+            <div className="flex justify-between text-xs font-bold text-gray-400 uppercase">
+              <span>
+                Squad {players.length}/{lobby.maxPlayers}
+              </span>
+              <span className="text-emerald-400">{ready} ready</span>
+            </div>
+            <div
+              className="flex gap-1 mt-3"
+              aria-label={`${players.length} of ${lobby.maxPlayers} party slots filled`}
+            >
+              {Array.from(
+                { length: Math.min(lobby.maxPlayers, 20) },
+                (_, i) => (
+                  <span
+                    key={i}
+                    className={`h-1.5 flex-1 rounded-full ${i < players.length ? "bg-emerald-500" : "bg-gray-700"}`}
+                  />
+                ),
+              )}
+            </div>
           </div>
-        </div>
-
-        {/* RIGHT: SIDEBAR (SQUAD LIST) */}
-        <div className="w-[300px] md:w-[350px] bg-[#2b2d31] border-l border-[#1f2023] flex flex-col shrink-0 transition-all">
-          <div className="h-12 border-b border-[#1f2023] flex items-center px-4 font-bold text-gray-400 text-xs uppercase tracking-wide">
-            Squad ({activePlayers.length}/{lobby.maxPlayers} Players)
-          </div>
-
           <div className="p-3 space-y-2 overflow-y-auto flex-1">
-            {/* Player Cards */}
-            {activePlayers.map((p) => {
-              const isP_Host = lobby.hostId === p.userId;
-              return (
-                <div
-                  key={p.userId}
-                  className="flex items-center gap-3 p-2 rounded hover:bg-[#35373c] group cursor-pointer transition-colors relative"
-                >
-                  {/* Avatar */}
-                  <div className="relative">
-                    <div className="w-9 h-9 rounded-full bg-gray-600 flex items-center justify-center text-white overflow-hidden">
-                      {p.user?.avatar ? (
-                        <img
-                          src={p.user.avatar}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <User size={16} />
-                      )}
-                    </div>
-                    {/* Status Dot (Online/Ready) */}
-                    <div
-                      className={cn(
-                        "absolute bottom-0 right-0 w-3 h-3 border-2 border-[#2b2d31] rounded-full",
-                        p.isReady ? "bg-green-500" : "bg-gray-400",
-                      )}
-                    ></div>
-                  </div>
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-white text-sm truncate flex items-center gap-1">
-                      <UserProfileLink
-                        username={p.user?.username}
-                        alias={
-                          p.user?.username === user?.username
-                            ? "You"
-                            : undefined
-                        }
-                        className="text-white hover:text-[#5865F2]"
-                      />
-                      {isP_Host && (
-                        <span className="text-[#e2b714]" title="Host">
-                          <svg
-                            width="12"
-                            height="12"
-                            viewBox="0 0 24 24"
-                            fill="currentColor"
-                          >
-                            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-                          </svg>
-                        </span>
-                      )}
-                    </h4>
-                    <p className="text-xs text-gray-400">
-                      {isP_Host ? "Lobby Host" : "Member"}
-                    </p>
-                  </div>
-
-                  {/* Ready Badge or Kick Button */}
-                  <div className="flex items-center gap-2">
-                    <div
-                      className={cn(
-                        "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border transition-all",
-                        p.isReady
-                          ? "bg-green-500/10 text-green-400 border-green-500/30"
-                          : "bg-gray-700/50 text-gray-500 border-gray-600",
-                      )}
-                    >
-                      {p.isReady ? "Ready" : "Not Ready"}
-                    </div>
-
-                    {/* Host Kick Button (only host sees, cant kick self) */}
-                    {isHost && p.userId !== user.id && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleKickPlayer(p.userId);
-                        }}
-                        className="opacity-0 group-hover:opacity-100 p-1 text-red-400 hover:bg-red-500/20 rounded transition-opacity"
-                        title="Kick Player"
-                      >
-                        <LogOut size={12} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* Empty Slots */}
-            {[...Array(emptySlots)].map((_, i) => (
+            {players.map((p) => (
               <div
-                key={i}
-                className="flex items-center justify-center border-2 border-dashed border-[#3f4147] rounded-lg p-4 text-center group hover:border-[#7289da] hover:bg-[#7289da]/5 transition-all cursor-pointer"
+                key={p.userId}
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5"
               >
-                <div className="space-y-1">
-                  <p className="text-gray-500 text-xs font-medium group-hover:text-[#7289da]">
-                    Waiting for Player...
-                  </p>
-                  <button className="text-xs bg-[#5865F2] hover:bg-[#4752c4] text-white px-3 py-1 rounded transition-colors">
-                    Invite Friend
-                  </button>
+                <div className="w-9 h-9 rounded-full bg-gray-600 grid place-items-center shrink-0">
+                  <User size={17} />
                 </div>
+                <div className="flex-1 min-w-0">
+                  <UserProfileLink
+                    username={p.user?.username}
+                    alias={p.userId === user.id ? "You" : undefined}
+                    className="font-semibold text-sm"
+                  />
+                  <p className="text-xs text-gray-500">
+                    {p.userId === lobby.hostId
+                      ? "★ Host"
+                      : p.online
+                        ? "Connected"
+                        : "Reconnecting"}
+                  </p>
+                </div>
+                <span
+                  className={`text-[10px] uppercase font-bold px-2 py-1 rounded border ${p.isReady ? "text-emerald-300 border-emerald-500/30 bg-emerald-500/10" : "text-gray-500 border-gray-700"}`}
+                >
+                  {p.isReady ? "Ready" : "Waiting"}
+                </span>
+                {host && p.userId !== user.id && (
+                  <button
+                    aria-label={`Kick ${p.user.username}`}
+                    onClick={() =>
+                      action("kick_player", { targetUserId: p.userId })
+                    }
+                    className="text-red-400 p-1"
+                  >
+                    <LogOut size={14} />
+                  </button>
+                )}
               </div>
             ))}
+            {Array.from(
+              { length: Math.max(0, lobby.maxPlayers - players.length) },
+              (_, i) => (
+                <button
+                  key={i}
+                  onClick={invite}
+                  className="block w-full border border-dashed border-gray-600 rounded-lg p-4 text-gray-400 text-sm hover:text-emerald-300 hover:border-emerald-500"
+                >
+                  + Invite a teammate
+                </button>
+              ),
+            )}
           </div>
-        </div>
+        </aside>
       </div>
-
-      {/* BOTTOM CONTROL BAR */}
-      <div className="h-[80px] bg-[#232428] flex items-center justify-between px-4 md:px-6 shrink-0">
-        {/* Left: User/Voice Controls */}
-        <div className="flex items-center gap-4 bg-[#1e1f22] p-2 rounded-md">
-          <div className="flex items-center gap-2 pr-4 border-r border-[#3f4147]">
-            <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center overflow-hidden">
-              {user.avatar ? (
-                <img src={user.avatar} className="w-full h-full object-cover" />
-              ) : (
-                <User size={16} />
-              )}
-            </div>
-            <div className="text-xs">
-              <div className="font-bold text-white">You</div>
-              <div className="text-gray-400">
-                #{user.username?.slice(-4) || "0000"}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={toggleMute}
-              className={cn(
-                "p-2 rounded transition-colors relative",
-                isMuted
-                  ? "text-red-400 hover:bg-red-500/10"
-                  : "text-white bg-green-500/10 hover:bg-green-500/20",
-              )}
-              title={isMuted ? "Unmute" : "Mute"}
-            >
-              <Mic size={20} className={cn(!isMuted && "fill-current")} />
-              {isMuted && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-full h-0.5 bg-red-400 rotate-45 transform scale-75"></div>
-                </div>
-              )}
-            </button>
-            <button
-              onClick={toggleDeafen}
-              className={cn(
-                "p-2 rounded transition-colors relative",
-                isDeafened
-                  ? "text-red-400 hover:bg-red-500/10"
-                  : "text-gray-300 hover:text-white hover:bg-[#3f4147]",
-              )}
-              title={isDeafened ? "Undeafen" : "Deafen"}
-            >
-              <Headphones size={20} />
-              {isDeafened && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-full h-0.5 bg-red-400 rotate-45 transform scale-75"></div>
-                </div>
-              )}
-            </button>
-            <button className="p-2 hover:bg-[#3f4147] rounded text-gray-300 hover:text-white transition-colors">
-              <Settings size={20} />
-            </button>
-          </div>
-        </div>
-
-        {/* Hidden Audio Elements for Voice Chat */}
-        {streams.map((s) => (
-          <audio
-            key={s.peerId}
-            ref={(el) => {
-              if (el && el.srcObject !== s.stream) {
-                el.srcObject = s.stream;
-                // Explicitly play to bypass Chrome autoplay restrictions
-                el.play().catch((err) => {
-                  console.warn(`Audio playback failed for ${s.peerId}:`, err);
-                });
+      <div className="px-4 py-2 bg-[#292b30] flex items-center gap-2 text-xs">
+        <span className="text-gray-400 shrink-0">Game details</span>
+        <input
+          aria-label="Game credentials"
+          readOnly={!host}
+          value={credentials}
+          maxLength={2000}
+          onChange={(e) => {
+            dirty.current = true;
+            setCredentials(e.target.value);
+          }}
+          placeholder={
+            host
+              ? "Room ID, invite code, or game password"
+              : "Waiting for host…"
+          }
+          className="flex-1 min-w-0 bg-[#1e1f22] rounded px-3 py-2 focus:outline-none"
+        />
+        {host ? (
+          <button
+            disabled={!connected}
+            onClick={saveCredentials}
+            className="text-emerald-400 px-2 py-2"
+          >
+            Save
+          </button>
+        ) : (
+          <button
+            aria-label="Copy game details"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(credentials);
+                toast({ title: "Game details copied" });
+              } catch {
+                toast({ title: "Copy the displayed game details manually." });
               }
             }}
-            autoPlay
-            muted={isDeafened}
-          />
-        ))}
-
-        {/* Center: Game Credentials */}
-        <div className="hidden md:flex flex-1 max-w-md mx-6">
-          <div
-            className={cn(
-              "flex items-center w-full bg-[#1e1f22] rounded overflow-hidden border transition-colors",
-              isHost
-                ? "focus-within:border-[#5865F2] border-[#1e1f22]"
-                : "border-transparent opacity-80",
-            )}
           >
-            <div className="bg-[#2b2d31] px-3 py-2.5 text-gray-400 border-r border-[#1e1f22]">
-              <Settings size={16} />
-            </div>
-            <input
-              type="text"
-              placeholder={
-                isHost ? "Set Game ID / Password" : "Wait for host..."
-              }
-              className={cn(
-                "w-full bg-transparent text-sm text-white px-3 py-2 focus:outline-none placeholder-gray-500 font-mono",
-                !isHost && "cursor-default",
-              )}
-              value={credentials}
-              onChange={(e) => setCredentials(e.target.value)}
-              readOnly={!isHost}
-              onKeyDown={(e) =>
-                isHost && e.key === "Enter" && handleUpdateCredentials()
-              }
-              onBlur={() => isHost && handleUpdateCredentials()}
-            />
-            {isHost ? (
-              <button
-                onClick={handleUpdateCredentials}
-                className="bg-[#2b2d31] hover:bg-[#35373c] px-3 py-2.5 text-gray-400 hover:text-white transition-colors"
-                title="Save Credentials"
-              >
-                <RefreshCw
-                  size={14}
-                  className="hover:rotate-180 transition-transform"
-                />
-              </button>
-            ) : (
-              <button
-                onClick={handleCopyCredentials}
-                className="bg-[#2b2d31] hover:bg-[#35373c] px-3 py-2.5 text-gray-400 hover:text-white transition-colors"
-                title="Copy to Clipboard"
-                disabled={!credentials}
-              >
-                <Copy size={14} />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Right: Actions */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleToggleReady}
-            className={cn(
-              "font-bold py-2.5 px-6 rounded transition transform hover:scale-105 shadow-lg active:scale-95 text-white",
-              amIReady
-                ? "bg-gray-500 hover:bg-gray-600" // Already ready -> Cancel?
-                : "bg-[#23a559] hover:bg-[#1a8c48]",
-            )}
-          >
-            {amIReady ? "CANCEL READY" : "READY UP"}
+            <Copy size={16} />
           </button>
-
-          {/* Close Lobby (Host) or Leave (Member) */}
-          {isHost ? (
-            <button
-              onClick={() => setIsCloseModalOpen(true)}
-              className="border border-red-500 bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white font-bold py-2.5 px-4 rounded transition flex items-center gap-2"
-            >
-              <XCircle size={18} />
-              <span className="hidden md:inline">Close Lobby</span>
-            </button>
+        )}
+      </div>
+      {voice.error && (
+        <p
+          role="status"
+          className="px-4 py-2 text-xs text-amber-200 bg-amber-950"
+        >
+          {voice.error}
+        </p>
+      )}
+      <footer className="bg-[#232428] flex flex-wrap justify-between items-center gap-3 p-3 md:px-5">
+        <div className="flex items-center gap-2">
+          {voice.active ? (
+            <>
+              <button
+                onClick={() => voice.leaveVoice().catch(() => {})}
+                className="text-xs px-3 py-2 rounded bg-emerald-500/10 text-emerald-300"
+              >
+                Leave voice
+              </button>
+              <button
+                aria-label={
+                  voice.isMuted ? "Unmute microphone" : "Mute microphone"
+                }
+                aria-pressed={voice.isMuted}
+                onClick={voice.toggleMute}
+                className={`p-2 rounded ${voice.isMuted ? "text-red-400" : "text-emerald-400"}`}
+              >
+                <Mic size={18} />
+              </button>
+              <button
+                aria-label={
+                  voice.isDeafened ? "Enable speaker audio" : "Deafen audio"
+                }
+                aria-pressed={voice.isDeafened}
+                onClick={voice.toggleDeafen}
+                className={`p-2 ${voice.isDeafened ? "text-red-400" : "text-gray-300"}`}
+              >
+                <Headphones size={18} />
+              </button>
+            </>
           ) : (
             <button
-              onClick={handleLeaveLobby}
-              className="border border-red-500/50 text-red-400 hover:bg-red-500/10 font-bold py-2.5 px-4 rounded transition flex items-center gap-2"
+              onClick={voice.joinVoice}
+              disabled={!connected || voice.busy}
+              className="text-sm px-3 py-2 bg-[#35373c] rounded-lg flex gap-2 items-center disabled:opacity-50"
             >
-              <LogOut size={18} />
-              <span className="hidden md:inline">Leave</span>
+              <Mic size={16} />
+              {voice.busy ? "Connecting voice…" : "Join voice"}
+            </button>
+          )}
+          {audioBlocked && (
+            <button
+              className="text-xs text-amber-300 underline"
+              onClick={() =>
+                Promise.all(
+                  [...document.querySelectorAll("audio")].map((el) =>
+                    el.play(),
+                  ),
+                )
+                  .then(() => setAudioBlocked(false))
+                  .catch(() => {})
+              }
+            >
+              Enable audio
             </button>
           )}
         </div>
-      </div>
-    </div>
+        <div className="flex gap-2">
+          <button
+            disabled={!connected}
+            onClick={() => action("toggle_ready")}
+            className={`px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-50 ${me?.isReady ? "bg-gray-600" : "bg-emerald-600 hover:bg-emerald-500"}`}
+          >
+            {me?.isReady ? "Cancel ready" : "Ready up"}
+          </button>
+          {host ? (
+            <button
+              disabled={!connected}
+              onClick={() => setConfirm(true)}
+              className="px-3 py-2 border border-red-500/50 rounded-lg text-red-300"
+              aria-label="Close lobby"
+            >
+              <XCircle size={18} />
+            </button>
+          ) : (
+            <button
+              disabled={!connected}
+              onClick={leave}
+              className="px-3 py-2 border border-red-500/50 rounded-lg text-red-300"
+              aria-label="Leave lobby"
+            >
+              <LogOut size={18} />
+            </button>
+          )}
+        </div>
+      </footer>
+      {voice.streams.map((item) => (
+        <audio
+          data-peer={item.peerId}
+          key={item.peerId}
+          autoPlay
+          muted={voice.isDeafened}
+          ref={(element) => {
+            if (element && element.srcObject !== item.stream) {
+              element.srcObject = item.stream;
+              element.play().catch(() => setAudioBlocked(true));
+            }
+          }}
+        />
+      ))}
+    </main>
   );
 }

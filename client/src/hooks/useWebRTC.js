@@ -1,191 +1,247 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import SimplePeer from "simple-peer";
+import { apiGet } from "../api/client";
+import { sendAction } from "../features/lobby/socket";
 
-export const useWebRTC = (lobbyId, userId, socket) => {
+export function useWebRTC(lobbyId, userId, socket) {
   const [streams, setStreams] = useState([]);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isDeafened, setIsDeafened] = useState(false);
-
-  const localStreamRef = useRef(null);
-  const peersRef = useRef({});
-
-  const cleanup = useCallback(() => {
-    Object.values(peersRef.current).forEach((peer) => peer?.destroy());
-    peersRef.current = {};
-
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((t) => t.stop());
-      localStreamRef.current = null;
-    }
-
+  const [active, setActive] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [isMuted, setMuted] = useState(false);
+  const [isDeafened, setDeafened] = useState(false);
+  const local = useRef(null),
+    peers = useRef(new Map()),
+    members = useRef([]),
+    ice = useRef([]),
+    retries = useRef(new Map()),
+    retryTimers = useRef(new Set()),
+    createRef = useRef(null),
+    mounted = useRef(true),
+    generation = useRef(0),
+    pending = useRef(false);
+  const destroyPeers = useCallback(() => {
+    for (const timer of retryTimers.current) clearTimeout(timer);
+    retryTimers.current.clear();
+    for (const peer of peers.current.values()) peer.destroy();
+    peers.current.clear();
     setStreams([]);
   }, []);
-
-  // 🎤 JOIN VOICE (MUST BE USER CLICK)
+  const cleanup = useCallback(() => {
+    generation.current++;
+    members.current = [];
+    const stream = local.current;
+    local.current = null;
+    stream?.getTracks().forEach((track) => track.stop());
+    destroyPeers();
+    retries.current.clear();
+    setActive(false);
+    setMuted(false);
+  }, [destroyPeers]);
+  const makePeer = useCallback(
+    (targetId, initiator) => {
+      if (!local.current || !socket.connected) return null;
+      const peer = new SimplePeer({
+        initiator,
+        trickle: true,
+        stream: local.current,
+        config: {
+          iceServers: ice.current,
+          iceTransportPolicy:
+            import.meta.env.VITE_FORCE_TURN === "true" ? "relay" : "all",
+        },
+      });
+      peers.current.set(targetId, peer);
+      peer.on("signal", (signalData) =>
+        sendAction(socket, "signal_voice", { targetId, signalData }).catch(
+          (err) => {
+            if (mounted.current) setError(err.message);
+          },
+        ),
+      );
+      peer.on("stream", (stream) => {
+        if (mounted.current)
+          setStreams((old) => [
+            ...old.filter((item) => item.peerId !== targetId),
+            { peerId: targetId, stream },
+          ]);
+      });
+      peer.on("connect", () => {
+        retries.current.delete(targetId);
+        if (mounted.current) setError("");
+      });
+      const closed = () => {
+        if (peers.current.get(targetId) !== peer) return;
+        peers.current.delete(targetId);
+        if (mounted.current)
+          setStreams((old) => old.filter((item) => item.peerId !== targetId));
+        if (
+          local.current &&
+          members.current.includes(targetId) &&
+          socket.connected &&
+          userId > targetId
+        ) {
+          const attempts = retries.current.get(targetId) || 0;
+          if (attempts < 2) {
+            retries.current.set(targetId, attempts + 1);
+            const timer = setTimeout(() => {
+              retryTimers.current.delete(timer);
+              if (
+                local.current &&
+                members.current.includes(targetId) &&
+                !peers.current.has(targetId)
+              )
+                createRef.current(targetId, true);
+            }, 1000);
+            retryTimers.current.add(timer);
+          } else if (mounted.current)
+            setError(
+              "A voice connection failed. Leave voice and rejoin to retry.",
+            );
+        }
+      };
+      peer.on("error", () => {
+        if (mounted.current)
+          setError("Voice connection interrupted. Reconnecting…");
+        peer.destroy();
+      });
+      peer.on("close", closed);
+      return peer;
+    },
+    [socket, userId],
+  );
+  useEffect(() => {
+    createRef.current = makePeer;
+  }, [makePeer]);
+  useEffect(() => {
+    mounted.current = true;
+    const updateMembers = (ids) => {
+      members.current = ids;
+      for (const [id, peer] of peers.current)
+        if (!ids.includes(id)) {
+          peers.current.delete(id);
+          peer.destroy();
+          setStreams((old) => old.filter((item) => item.peerId !== id));
+        }
+      if (!local.current) return;
+      for (const id of ids)
+        if (id !== userId && userId > id && !peers.current.has(id))
+          makePeer(id, true);
+    };
+    const signal = ({ senderId, signalData }) => {
+      if (!local.current || !members.current.includes(senderId)) return;
+      let peer = peers.current.get(senderId);
+      if (signalData.type === "offer" && peer) {
+        peers.current.delete(senderId);
+        peer.destroy();
+        peer = null;
+      }
+      peer = peer || makePeer(senderId, false);
+      try {
+        peer?.signal(signalData);
+      } catch {
+        peer?.destroy();
+      }
+    };
+    const resume = () => {
+      if (local.current)
+        sendAction(socket, "voice_join")
+          .then((result) => updateMembers(result.members))
+          .catch((err) => {
+            setError(err.message);
+            cleanup();
+          });
+    };
+    const disconnect = () => {
+      members.current = [];
+      destroyPeers();
+    };
+    socket.on("voice_members", updateMembers);
+    socket.on("signal_voice", signal);
+    socket.on("lobby_joined", resume);
+    socket.on("disconnect", disconnect);
+    return () => {
+      mounted.current = false;
+      socket.off("voice_members", updateMembers);
+      socket.off("signal_voice", signal);
+      socket.off("lobby_joined", resume);
+      socket.off("disconnect", disconnect);
+      cleanup();
+    };
+  }, [socket, userId, lobbyId, makePeer, cleanup, destroyPeers]);
   const joinVoice = useCallback(async () => {
-    if (localStreamRef.current) return true;
-
+    if (local.current || pending.current) return;
+    pending.current = true;
+    setBusy(true);
+    setError("");
+    const attempt = generation.current;
+    let media;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
+      media = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
         },
       });
-
-      localStreamRef.current = stream;
-      stream.getAudioTracks()[0].enabled = true;
-      setIsMuted(false);
-
-      return true;
+      if (attempt !== generation.current || !mounted.current) {
+        media.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      const config = await apiGet(`/api/lobbies/${lobbyId}/ice`);
+      if (attempt !== generation.current || !mounted.current) {
+        media.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      ice.current = config.iceServers;
+      local.current = media;
+      await sendAction(socket, "voice_join");
+      if (attempt !== generation.current || !mounted.current) {
+        media.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      setActive(true);
+      setMuted(false);
     } catch (err) {
-      console.error("Mic error:", err);
-      return false;
+      media?.getTracks().forEach((track) => track.stop());
+      cleanup();
+      if (mounted.current)
+        setError(
+          err.name === "NotAllowedError"
+            ? "Microphone permission was denied. You can still use text chat."
+            : err.message ||
+                "Voice is unavailable. You can still use text chat.",
+        );
+    } finally {
+      pending.current = false;
+      if (mounted.current) setBusy(false);
+    }
+  }, [lobbyId, socket, cleanup]);
+  const leaveVoice = useCallback(async () => {
+    try {
+      if (socket.connected) await sendAction(socket, "voice_leave");
+    } finally {
+      cleanup();
+    }
+  }, [socket, cleanup]);
+  const toggleMute = useCallback(() => {
+    const track = local.current?.getAudioTracks()[0];
+    if (track) {
+      track.enabled = !track.enabled;
+      setMuted(!track.enabled);
     }
   }, []);
-
-  // Helper function to create peer connections
-  const createPeer = useCallback(
-    (targetId, initiator) => {
-      if (!socket || !userId || !localStreamRef.current) {
-        console.error("Cannot create peer: missing dependencies");
-        return null;
-      }
-
-      const peer = new SimplePeer({
-        initiator,
-        trickle: false,
-        stream: localStreamRef.current,
-        config: {
-          iceServers: [
-            { urls: "stun:stun.l.google.com:19302" },
-            { urls: "stun:stun1.l.google.com:19302" },
-          ],
-        },
-      });
-
-      peer.on("signal", (signal) => {
-        socket.emit("signal_voice", {
-          senderId: userId,
-          targetId,
-          signalData: signal,
-        });
-      });
-
-      peer.on("stream", (stream) => {
-        console.log("Received stream from", targetId);
-        setStreams((prev) => {
-          // Prevent duplicate streams
-          if (prev.some((s) => s.peerId === targetId)) {
-            return prev;
-          }
-          return [...prev, { peerId: targetId, stream }];
-        });
-      });
-
-      peer.on("connect", () => console.log("✅ Peer connected:", targetId));
-      peer.on("close", () => console.log("❌ Peer closed:", targetId));
-      peer.on("error", (err) =>
-        console.error("Peer error with", targetId, ":", err),
-      );
-
-      return peer;
-    },
-    [socket, userId],
-  );
-
-  // 🔁 SIGNAL HANDLING
-  useEffect(() => {
-    if (!socket) return;
-
-    const handleSignal = ({ senderId, signalData }) => {
-      if (!localStreamRef.current) {
-        console.warn("Received signal but no local stream");
-        return;
-      }
-
-      let peer = peersRef.current[senderId];
-      if (!peer) {
-        console.log("Creating peer for incoming signal from", senderId);
-        peer = createPeer(senderId, false);
-        if (peer) {
-          peersRef.current[senderId] = peer;
-        }
-      }
-
-      if (peer) {
-        try {
-          peer.signal(signalData);
-        } catch (err) {
-          console.error("Error signaling peer", senderId, ":", err);
-        }
-      }
-    };
-
-    socket.on("signal_voice", handleSignal);
-    return () => socket.off("signal_voice", handleSignal);
-  }, [socket, createPeer]);
-
-  // 👥 SYNC PEERS
-  const syncPeers = useCallback(
-    (participants) => {
-      if (!localStreamRef.current || !socket || !userId) {
-        console.warn("Cannot sync peers: not ready");
-        return;
-      }
-
-      const participantIds = participants.map((p) => p.userId);
-
-      // Create new peer connections for new participants
-      participants.forEach((p) => {
-        const targetId = p.userId;
-        if (targetId === userId) return; // Skip self
-        if (peersRef.current[targetId]) return; // Already connected
-
-        // Determine who initiates based on user ID comparison for consistency
-        const initiator = userId > targetId;
-        if (initiator) {
-          console.log("Initiating connection to", targetId);
-          const peer = createPeer(targetId, true);
-          if (peer) {
-            peersRef.current[targetId] = peer;
-          }
-        }
-      });
-
-      // Clean up peers that are no longer in the lobby
-      Object.keys(peersRef.current).forEach((id) => {
-        if (!participantIds.includes(id)) {
-          console.log("Removing peer", id);
-          peersRef.current[id]?.destroy();
-          delete peersRef.current[id];
-          setStreams((prev) => prev.filter((s) => s.peerId !== id));
-        }
-      });
-    },
-    [userId, socket, createPeer],
-  );
-
-  // 🔇 MUTE
-  const toggleMute = useCallback(() => {
-    const track = localStreamRef.current?.getAudioTracks()[0];
-    if (!track) return;
-    track.enabled = !track.enabled;
-    setIsMuted(!track.enabled);
-  }, []);
-
-  // 🎧 DEAFEN
-  const toggleDeafen = useCallback(() => setIsDeafened((v) => !v), []);
-
   return {
     joinVoice,
+    leaveVoice,
     cleanup,
     streams,
+    active,
+    busy,
+    error,
     isMuted,
     isDeafened,
     toggleMute,
-    toggleDeafen,
-    syncPeers,
+    toggleDeafen: () => setDeafened((old) => !old),
   };
-};
+}

@@ -5,9 +5,13 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "nodemon src/index.js",
+    "dev": "node --watch src/index.js",
     "start": "node src/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node scripts/test.js",
+    "db:audit": "node scripts/db-audit.js",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "games:review": "node scripts/review-games.js"
   },
   "keywords": [],
   "author": "",
@@ -22,17 +26,19 @@
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
-    "express-validator": "^7.3.1",
+    "google-auth-library": "^11.3.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.1.4",
     "node-cron": "^4.2.1",
     "redis": "^6.2.1",
     "socket.io": "^4.8.3",
     "zod": "^4.3.5"
   },
   "devDependencies": {
-    "nodemon": "^3.1.11",
-    "prisma": "^5.22.0"
+    "prisma": "^5.22.0",
+    "socket.io-client": "^4.8.4"
+  },
+  "engines": {
+    "node": ">=22 <26"
   }
 }

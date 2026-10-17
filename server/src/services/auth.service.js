@@ -1,30 +1,10 @@
-import prisma from "../db/config.js";
+import prisma from '../db/config.js';
+import { userSelect } from './session.service.js';
+import { storedGame } from './game.service.js';
 
-export const findUserByEmailOrUsername = async (email, username) => {
-  return await prisma.user.findFirst({
-    where: {
-      OR: [{ email }, { username }],
-    },
-  });
-};
-
-export const createUser = async (data) => {
-  return await prisma.user.create({
-    data,
-    select: {
-      id: true,
-      email: true,
-      username: true,
-      avatar: true,
-      bio: true,
-      karmaScore: true,
-      createdAt: true,
-    },
-  });
-};
-
-export const findUserByEmail = async (email) => {
-  return await prisma.user.findUnique({
-    where: { email },
-  });
-};
+export async function privateUser(id) {
+  const user = await prisma.user.findUnique({ where: { id }, select: { ...userSelect, googleSub: true, favoriteGames: true } });
+  if (!user) return null;
+  const { googleSub, ...safe } = user;
+  return { ...safe, favoriteGames: safe.favoriteGames.map(storedGame).filter(Boolean), googleLinked: Boolean(googleSub) };
+}

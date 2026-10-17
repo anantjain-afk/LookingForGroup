@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: looking-for-group-api
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm ci && npx prisma generate
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: REDIS_ENABLED
+        value: 'false'
+      - key: DATABASE_URL
+        sync: false
+      - key: CLIENT_URL
+        value: https://looking-for-group.vercel.app
+      - key: PUBLIC_APP_URL
+        value: https://looking-for-group.vercel.app
+      - key: GOOGLE_CLIENT_ID
+        value: 87763834977-fbcgijjdidcvg9a1jus1ehigqajslioe.apps.googleusercontent.com
+      - key: BREVO_API_KEY
+        sync: false
+      - key: MAIL_FROM_EMAIL
+        sync: false
+      - key: MAIL_FROM_NAME
+        value: LFG
+      - key: METERED_APP_NAME
+        sync: false
+      - key: METERED_API_KEY
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: IGDB_CLIENT_ID
+        sync: false
+      - key: IGDB_CLIENT_SECRET
+        sync: false

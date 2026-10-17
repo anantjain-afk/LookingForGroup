@@ -1,57 +1,36 @@
-import * as lobbyService from '../services/lobby.service.js';
-
-export const createLobby = async (req, res) => {
-  try {
-    const lobby = await lobbyService.createLobby(req.body, req.user.id);
-    res.status(201).json(lobby);
-  } catch (error) {
-    console.error("Create Lobby Error:", error);
-    res.status(500).json({ error: "Failed to create lobby" });
-  }
-};
-
-export const getLobbies = async (req, res) => {
-  try {
-    const lobbies = await lobbyService.getAllLobbies(req.query);
-    res.json(lobbies);
-  } catch (error) {
-    console.error("Get Lobbies Error:", error);
-    res.status(500).json({ error: "Failed to fetch lobbies" });
-  }
-};
-
+import * as lobbyService from "../services/lobby.service.js";
+import { getIceServers } from "../services/voice.service.js";
+import { AppError } from "../lib/errors.js";
+import { REGIONS, CAPACITIES } from "../config/lobbies.js";
+export const createLobby = async (req, res) =>
+  res
+    .status(201)
+    .json(
+      await lobbyService.createLobby(
+        req.body,
+        req.user.id,
+        req.app.locals.catalog,
+      ),
+    );
+export const getLobbies = async (req, res) =>
+  res.json(await lobbyService.getAllLobbies(req.query));
 export const getLobby = async (req, res) => {
-    const { id } = req.params;
-    try {
-        const lobby = await lobbyService.getLobbyById(id);
-        if (!lobby) {
-            return res.status(404).json({ error: "Lobby not found" });
-        }
-        res.json(lobby);
-    } catch (error) {
-        console.error("Get Lobby Error:", error);
-        res.status(500).json({ error: "Failed to fetch lobby" });
-    }
-}
-
+  const lobby = await lobbyService.getLobbyById(req.params.id);
+  if (!lobby) throw new AppError(404, "Lobby not found.", "LOBBY_NOT_FOUND");
+  res.json(lobby);
+};
 export const closeLobby = async (req, res) => {
-    const { id } = req.params;
-    const userId = req.user.id;
-
-    try {
-        const result = await lobbyService.closeLobby(id, userId);
-        
-        // Emit Socket Event
-        const io = req.app.get("io");
-        io.to(`lobby_${id}`).emit("LOBBY_DISBANDED");
-
-        res.json(result);
-    } catch (error) {
-        console.error("Close Lobby Error:", error);
-        if (error.message === "Unauthorized" || error.message === "Lobby not found") {
-            res.status(403).json({ error: error.message });
-        } else {
-            res.status(500).json({ error: "Failed to close lobby" });
-        }
-    }
+  const result = await lobbyService.closeLobby(req.params.id, req.user.id);
+  await req.app.locals.realtime.closed(req.params.id, result.igdbId);
+  res.json({ message: "Lobby closed." });
+};
+export const metadata = (_req, res) =>
+  res.json({ regions: REGIONS, capacities: CAPACITIES });
+export const iceServers = async (req, res) => {
+  await lobbyService.assertMember(req.params.id, req.user.id);
+  res
+    .set("Cache-Control", "no-store")
+    .json({
+      iceServers: await (req.app.locals.iceProvider || getIceServers)(),
+    });
 };

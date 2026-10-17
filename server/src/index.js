@@ -1,92 +1,20 @@
-import "dotenv/config";
-import express from "express";
-import cors from "cors";
-import cookieParser from "cookie-parser";
-import { createServer } from "http";
-import { Server } from "socket.io";
-import { createClient } from "redis";
-import { createAdapter } from "@socket.io/redis-adapter";
+import 'dotenv/config';
+import { createApplication } from './app.js';
+import { initCleanupService } from './services/cleanup.service.js';
+import prisma from './db/config.js';
+import { recoverPresence } from './services/lobby.service.js';
 
-import userRoutes from "./routes/userRoutes.js";
-import authRoutes from "./routes/auth.routes.js";
-import lobbyRoutes from "./routes/lobby.routes.js";
-import gameRoutes from "./routes/game.routes.js";
-import tagRoutes from "./routes/tag.routes.js";
-
-import { lobbyHandler } from "./socket/lobbyHandler.js";
-import { initCleanupService } from "./services/cleanup.service.js";
-
-// Start Cleanup Service
-initCleanupService();
-
-const app = express();
-const httpServer = createServer(app);
-const PORT = process.env.PORT || 5000;
-
-// Middleware
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
-    credentials: true,
-  }),
-);
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
-
-// Initialize Socket.io
-const io = new Server(httpServer, {
-  cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
-    credentials: true,
-  },
-});
-
-// Set up Redis Adapter for Socket.io
-const pubClient = createClient({ url: process.env.REDIS_URL || "redis://localhost:6379" });
-const subClient = pubClient.duplicate();
-
-Promise.all([pubClient.connect(), subClient.connect()]).then(() => {
-  io.adapter(createAdapter(pubClient, subClient));
-  console.log("🚀 Redis Adapter connected to Socket.io");
-}).catch(err => {
-  console.error("❌ Redis connection failed. Ensure Redis is running locally or via Docker!", err);
-});
-
-// Make io accessible in routes
-app.set("io", io);
-
-// Socket Handler
-const onConnection = (socket) => {
-  lobbyHandler(io, socket);
-};
-
-io.on("connection", onConnection);
-
-// Routes
-app.use("/api", userRoutes);
-app.use("/api/auth", authRoutes);
-app.use("/api/lobbies", lobbyRoutes);
-app.use("/api/games", gameRoutes);
-app.use("/api/tags", tagRoutes);
-
-// Health check
-app.get("/health", (req, res) => {
-  res.json({ status: "ok", message: "Server is running" });
-});
-
-// Global error handler
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(err.status || 500).json({
-    error: {
-      message: err.message || "Internal Server Error",
-      ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
-    },
-  });
-});
-
-// Start server
-httpServer.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-});
+const { httpServer, io, close, realtime } = await createApplication();
+await recoverPresence();
+const cleanup = initCleanupService(realtime);
+const port = Number(process.env.PORT || 3000);
+httpServer.listen(port, '0.0.0.0', () => console.info(`Server listening on ${port}`));
+async function shutdown() {
+  cleanup?.stop();
+  io.disconnectSockets(true);
+  await close();
+  await prisma.$disconnect();
+  process.exit(0);
+}
+process.once('SIGTERM', shutdown);
+process.once('SIGINT', shutdown);

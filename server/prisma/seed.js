@@ -9,9 +9,7 @@ async function main() {
   console.log('Start seeding ...');
 
   // --- Seed Tags ---
-  // Wipe existing tags (must clear LobbyTag first due to FK constraints)
-  await prisma.lobbyTag.deleteMany({});
-  await prisma.tag.deleteMany({});
+  // Preserve existing tags and lobby relationships; this seed is repeatable.
   
   const tags = [
     // Communication & Setup

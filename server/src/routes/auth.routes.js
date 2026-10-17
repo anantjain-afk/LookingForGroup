@@ -1,15 +1,21 @@
-import express from "express";
-import { register, login, logout } from "../controllers/auth.controller.js";
-
+import express from 'express';
+import rateLimit from 'express-rate-limit';
+import * as auth from '../controllers/auth.controller.js';
+import { issueCsrf } from '../middleware/csrf.js';
+import { verifyToken, requireVerified } from '../middleware/verifyToken.js';
+import { authenticationBucket,rateLimitMessage } from '../middleware/rate-limit.js';
 const router = express.Router();
-
-// POST /api/register - Register a new user
-router.post("/register", register);
-
-// POST /api/login - Login a user
-router.post("/login", login);
-
-// POST /api/logout - Logout a user
-router.post("/logout", logout);
-
+const limiter = rateLimit({ windowMs: 15 * 60_000, limit: 30, keyGenerator:authenticationBucket, standardHeaders: 'draft-7', legacyHeaders: false, message: rateLimitMessage });
+router.get('/csrf', issueCsrf);
+router.get('/config', auth.config);
+router.post('/register', limiter, auth.register);
+router.post('/login', limiter, auth.login);
+router.post('/google', limiter, auth.google);
+router.post('/google/link', limiter, verifyToken, auth.google);
+router.post('/logout', verifyToken, auth.logout);
+router.post('/socket-ticket', verifyToken, requireVerified, auth.socketTicket);
+router.post('/verification/resend', limiter, verifyToken, auth.resendVerification);
+router.post('/verify-email', limiter, auth.consumeEmailToken);
+router.post('/forgot-password', limiter, auth.requestReset);
+router.post('/reset-password', limiter, auth.consumeEmailToken);
 export default router;

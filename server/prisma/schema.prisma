@@ -17,7 +17,9 @@ model User {
   id         String   @id @default(cuid())
   email      String   @unique
   username   String   @unique
-  password   String
+  password   String?
+  googleSub  String?  @unique
+  emailVerifiedAt DateTime?
   avatar     String?
   bio        String?
   karmaScore Int      @default(0)
@@ -27,14 +29,40 @@ model User {
   lobbiesHosted Lobby[]            @relation("HostedLobbies")
   lobbiesJoined LobbyParticipant[]
   favoriteGames Game[]             @relation("UserFavoriteGames")
+  sessions Session[]
+  emailTokens EmailToken[]
+  lobbyBans LobbyBan[]
+}
+
+model Session {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model EmailToken {
+  digest String @id
+  purpose String
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  @@index([userId, purpose])
+  @@index([expiresAt])
 }
 
 model Game {
   id        String   @id @default(cuid())
   igdbId    Int?     @unique
-  name      String   @unique
+  name      String
   genre     String?
   imageUrl  String?
+  metadata  Json?
+  syncedAt  DateTime?
   lobbies   Lobby[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -55,6 +83,9 @@ model Lobby {
   status      String  @default("OPEN") // OPEN, FULL, IN_GAME
   maxPlayers  Int     @default(5)
   credentials String?
+  platformId Int?
+  region String?
+  language String?
 
   hostId String
   host   User   @relation("HostedLobbies", fields: [hostId], references: [id])
@@ -63,10 +94,13 @@ model Lobby {
   game   Game   @relation(fields: [gameId], references: [id])
 
   participants LobbyParticipant[]
+  bans LobbyBan[]
   tags         LobbyTag[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([gameId, status])
 }
 
 model LobbyParticipant {
@@ -78,8 +112,19 @@ model LobbyParticipant {
   role     String   @default("MEMBER") // HOST, MEMBER
   isReady  Boolean  @default(false)
   joinedAt DateTime @default(now())
+  disconnectedAt DateTime?
 
   @@unique([userId, lobbyId])
+  @@index([disconnectedAt])
+}
+
+model LobbyBan {
+  lobbyId String
+  userId String
+  lobby Lobby @relation(fields: [lobbyId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  @@id([lobbyId, userId])
 }
 
 model LobbyTag {
