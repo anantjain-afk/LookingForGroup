@@ -191,3 +191,27 @@ test("denied microphone leaves text usable and hosting retains its selected IGDB
     await member.context.close();
   }
 });
+
+test("lobby tags appear when hosting and filter the lobby list", async ({ browser, request }) => {
+  const host = await player(browser, request, 0);
+  try {
+    await expect(host.page.getByLabel("Lobby tags").getByText("Mic Required")).toBeVisible();
+    await host.page.goto("/game/126459");
+    await expect(host.page.getByRole("button", { name: "Mic Required" })).toBeVisible();
+    await expect(host.page.getByText("Browser test squad")).toBeVisible();
+    await host.page.getByRole("button", { name: "Mic Optional" }).click();
+    await expect(host.page.getByText("No Matches Found")).toBeVisible();
+    await host.page.getByRole("button", { name: "Clear Filters" }).click();
+    await host.page.getByRole("button", { name: "Mic Required" }).click();
+    await expect(host.page.getByText("Browser test squad")).toBeVisible();
+
+    await host.page.goto("/host-new-lobby?igdbId=126459");
+    const tag = host.page.getByRole("button", { name: "Mic Required" });
+    await expect(tag).toBeVisible();
+    await tag.click();
+    await expect(tag).toHaveAttribute("aria-pressed", "true");
+    expect(host.errors).toEqual([]);
+  } finally {
+    await host.context.close();
+  }
+});

@@ -1,0 +1,33 @@
+-- Populate the discoverable lobby tags for existing and new installations.
+-- Keep existing IDs so LobbyTag relationships remain intact.
+INSERT INTO "Tag" ("id", "name", "category") VALUES
+  ('tag_mic_required', 'Mic Required', 'Communication'),
+  ('tag_mic_optional', 'Mic Optional', 'Communication'),
+  ('tag_text_chat_only', 'Text Chat Only', 'Communication'),
+  ('tag_no_background_noises', 'No Background Noises', 'Communication'),
+  ('tag_voice_chat_discord', 'Voice Chat (Discord)', 'Communication'),
+  ('tag_chill_casual', 'Chill/Casual', 'Vibe'),
+  ('tag_tryhard', 'TryHard', 'Vibe'),
+  ('tag_meme_troll_friendly', 'Meme/Troll Friendly', 'Vibe'),
+  ('tag_learning', 'Learning', 'Vibe'),
+  ('tag_carrying', 'Carrying', 'Vibe'),
+  ('tag_need_carry', 'Need Carry', 'Vibe'),
+  ('tag_competitive', 'Competitive', 'Vibe'),
+  ('tag_speedrun', 'Speedrun', 'Vibe'),
+  ('tag_achievement_trophy_hunting', 'Achievement / Trophy Hunting', 'Vibe'),
+  ('tag_beginner_friendly', 'Beginner Friendly', 'Skill Level'),
+  ('tag_intermediate', 'Intermediate', 'Skill Level'),
+  ('tag_advanced', 'Advanced', 'Skill Level'),
+  ('tag_learning_together', 'Learning Together', 'Skill Level'),
+  ('tag_no_beginner', 'No Beginner', 'Skill Level'),
+  ('tag_coaching_available', 'Coaching Available', 'Skill Level'),
+  ('tag_no_swearing', 'No swearing', 'Behavior'),
+  ('tag_swearing_allowed', 'Swearing allowed', 'Behavior'),
+  ('tag_no_rage', 'No Rage', 'Behavior'),
+  ('tag_team_oriented', 'Team-Oriented', 'Behavior'),
+  ('tag_solo_friendly', 'Solo-Friendly', 'Behavior'),
+  ('tag_short_session', 'Short Session', 'Commitment'),
+  ('tag_long_session', 'Long Session', 'Commitment'),
+  ('tag_daily_grind', 'Daily Grind', 'Commitment'),
+  ('tag_one_match_only', 'One Match Only', 'Commitment')
+ON CONFLICT ("name") DO NOTHING;

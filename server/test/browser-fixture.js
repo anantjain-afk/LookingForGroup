@@ -26,7 +26,9 @@ const migrated = spawnSync("npx", ["prisma", "migrate", "deploy"], {
 if (migrated.status) process.exit(migrated.status);
 const { start, clearDatabase, prisma } = await import("./helpers.js");
 const { catalog, identity } = await import("./lobby-fixtures.js");
-await clearDatabase();
+await clearDatabase({ preserveTags: true });
+const fixtureTags = await prisma.tag.findMany({ where: { name: { in: ["Mic Required", "Chill/Casual"] } } });
+if (fixtureTags.length !== 2) throw new Error("Default lobby tags were not migrated.");
 const liveTurn = process.env.LFG_E2E_REAL_TURN === "true";
 if (liveTurn) {
   const values = parse(readFileSync(new URL("../.env", import.meta.url)));
@@ -63,6 +65,7 @@ const lobby = await createLobby(
     region: "Asia",
     language: "English",
     maxPlayers: 8,
+    tags: fixtureTags.map(tag => tag.id),
   },
   people[0].user.id,
   catalog(),

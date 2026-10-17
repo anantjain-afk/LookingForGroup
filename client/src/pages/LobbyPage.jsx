@@ -249,6 +249,21 @@ export default function LobbyPage() {
               : "Reconnecting…"}
         </span>
       </header>
+      {lobby.tags?.length > 0 && (
+        <div
+          aria-label="Lobby tags"
+          className="flex gap-2 overflow-x-auto px-4 py-2 bg-[#292b30] border-b border-[#1b1c1e]"
+        >
+          {lobby.tags.map((tag) => (
+            <span
+              key={tag.id}
+              className="shrink-0 rounded-full border border-[#7289da]/40 bg-[#7289da]/15 px-2.5 py-1 text-xs text-[#c6ccff]"
+            >
+              {tag.name}
+            </span>
+          ))}
+        </div>
+      )}
       {!connected && (
         <div
           role="status"

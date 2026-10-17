@@ -3,7 +3,7 @@ import { useToast } from "../hooks/useToast";
 import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Users, Trophy, Clock, Search, X, Heart } from "lucide-react";
+import { Users, Clock, Search, X, Heart } from "lucide-react";
 import { useUserStore } from "../store/useUserStore";
 import { formatDistanceToNow } from "date-fns";
 import { apiGet, apiPost, apiDelete } from "../api/client";
@@ -77,7 +77,12 @@ export default function LobbyBrowserPage() {
     staleTime: 0,
   });
 
-  const { data: tags, isLoading: isLoadingTags } = useQuery({
+  const {
+    data: tags = {},
+    isLoading: isLoadingTags,
+    isError: tagsFailed,
+    refetch: retryTags,
+  } = useQuery({
     queryKey: ["tags"],
     queryFn: fetchTags,
   });
@@ -87,7 +92,7 @@ export default function LobbyBrowserPage() {
     setSelectedTagIds((prev) =>
       prev.includes(tagId)
         ? prev.filter((id) => id !== tagId)
-        : [...prev, tagId],
+        : prev.length < 12 ? [...prev, tagId] : prev,
     );
   };
 
@@ -265,9 +270,15 @@ export default function LobbyBrowserPage() {
 
             {/* Tags Row */}
             <div className="space-y-6 pt-2">
+              <p className="text-xs text-gray-400">Lobby tags ({selectedTagIds.length}/12 selected)</p>
               {isLoadingTags ? (
                 <div className="text-gray-500 text-xs">Loading tags...</div>
-              ) : tags && !Array.isArray(tags) ? (
+              ) : tagsFailed ? (
+                <p role="alert" className="text-amber-300 text-sm">
+                  Tags could not be loaded.{" "}
+                  <button type="button" onClick={() => retryTags()} className="underline">Retry</button>
+                </p>
+              ) : Object.keys(tags).length ? (
                 Object.entries(tags).map(([category, categoryTags]) => (
                   <div key={category} className="space-y-2">
                     <h4 className="text-[#96989d] text-[10px] font-bold uppercase tracking-widest pl-1">
@@ -279,6 +290,7 @@ export default function LobbyBrowserPage() {
                           key={tag.id}
                           label={tag.name}
                           active={selectedTagIds.includes(tag.id)}
+                          disabled={selectedTagIds.length >= 12 && !selectedTagIds.includes(tag.id)}
                           onClick={() => toggleTag(tag.id)}
                         />
                       ))}
@@ -286,17 +298,7 @@ export default function LobbyBrowserPage() {
                   </div>
                 ))
               ) : (
-                /* Fallback if tags is array or null */
-                <div className="flex flex-wrap gap-2">
-                  {(Array.isArray(tags) ? tags : []).map((tag) => (
-                    <FilterPill
-                      key={tag.id}
-                      label={tag.name}
-                      active={selectedTagIds.includes(tag.id)}
-                      onClick={() => toggleTag(tag.id)}
-                    />
-                  ))}
-                </div>
+                <p className="text-amber-300 text-sm">No lobby tags are available yet. Ask the administrator to apply the latest database migrations.</p>
               )}
             </div>
           </div>
@@ -349,12 +351,15 @@ export default function LobbyBrowserPage() {
 
 // Sub-components
 
-function FilterPill({ label, active = false, onClick }) {
+function FilterPill({ label, active = false, disabled = false, onClick }) {
   return (
     <button
+      type="button"
+      aria-pressed={active}
+      disabled={disabled}
       onClick={onClick}
       className={cn(
-        "px-3 py-1.5 rounded text-xs font-semibold transition-all shadow-sm border",
+        "px-3 py-1.5 rounded text-xs font-semibold transition-all shadow-sm border focus-visible:outline-2 focus-visible:outline-[#7289da] disabled:opacity-40 disabled:cursor-not-allowed",
         active
           ? "bg-[#5865F2] text-white border-[#5865F2] shadow-[0_0_10px_rgba(88,101,242,0.4)]"
           : "bg-[#36393f] text-gray-400 border-transparent hover:bg-[#424549] hover:text-gray-200",
@@ -406,18 +411,6 @@ function LobbyCard({ lobby }) {
               <Users size={14} />
               <span>
                 {lobby.participants.length}/{lobby.maxPlayers} Players
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Trophy size={14} className="text-yellow-500" />
-              <span>
-                {/* Default logic if tag doesn't explicitly have category */}
-                {lobby.tags.find(
-                  (t) =>
-                    t.name.includes("Rank") ||
-                    t.name.includes("Gold") ||
-                    t.name.includes("Plat"),
-                )?.name || "Any Rank"}
               </span>
             </div>
             <div className="flex items-center gap-1.5">

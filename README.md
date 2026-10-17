@@ -8,7 +8,7 @@ React/Vite on Vercel, Express/Socket.IO on one Render instance, and PostgreSQL/P
 
 1. Run `npm ci` in both `server` and `client`.
 2. Copy each `.env.example` to an ignored environment file. Use a **local disposable database** when developing. Set `JWT_SECRET` to at least 32 random characters and configure IGDB/Twitch credentials.
-3. In `server`, run `npm run db:generate`, inspect `npm run db:audit`, then apply migrations with `npm run db:migrate` to your local database. See deployment notes before using an existing database.
+3. In `server`, run `npm run db:generate`, inspect `npm run db:audit`, then apply migrations with `npm run db:migrate` to your local database. Migrations add the default lobby tags without replacing existing tags or their lobby links. Run `npm run db:migrate` again when updating an existing deployment. See deployment notes before using an existing database.
 4. Run `npm run dev` in each directory. Frontend: `http://localhost:5173`; backend: `http://localhost:3000`.
 
 Browsing is public. Hosting and joining require a verified account. Google uses a Web OAuth client with JavaScript origins, a popup ID token, and server-side verification. Email verification/reset and TURN relay setup are in [provider setup](docs/PROVIDER_SETUP.md).

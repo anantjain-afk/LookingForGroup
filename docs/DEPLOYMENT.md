@@ -14,7 +14,7 @@ The original migration contains only User. The reconciliation migration adds the
 4. Run `npx prisma migrate deploy` against the isolated branch. Verify account, favorite and lobby counts and foreign keys before repeating against production.
 5. Never run `migrate reset`, `db push --accept-data-loss`, or the old destructive seed script against production.
 
-Production migrations are deliberately separate from the Render build/start command. Test and apply them before deploying the corresponding application version.
+Production migrations are deliberately separate from the Render build/start command. Test and apply them before deploying the corresponding application version. The `20261018000100_restore_default_tags` migration adds 29 default lobby tags with `ON CONFLICT (name) DO NOTHING`; it keeps existing tag IDs and lobby relationships. Run `npm run db:migrate` against the intended Neon database before deploying the tag-restoration branch.
 
 ## Authentication configuration
 

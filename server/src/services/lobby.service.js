@@ -116,10 +116,17 @@ export async function getAllLobbies(filters = {}) {
       : {}),
   };
   if (data.igdbId) where.game = { igdbId: parseIgdbId(data.igdbId) };
-  if (data.tags)
-    where.tags = {
-      some: { tagId: { in: data.tags.split(",").filter(Boolean) } },
-    };
+  if (data.tags) {
+    const tagIds = [...new Set(data.tags.split(","))];
+    if (tagIds.length > 12 || tagIds.some((id) => !id || id.length > 64))
+      throw new AppError(
+        400,
+        "Choose up to 12 valid lobby tags.",
+        "VALIDATION_ERROR",
+      );
+    // Each selected tag must be on the same lobby.
+    where.AND = tagIds.map((tagId) => ({ tags: { some: { tagId } } }));
+  }
   const lobbies = await prisma.lobby.findMany({
     where,
     include,

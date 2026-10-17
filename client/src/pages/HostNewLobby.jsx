@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "../hooks/useToast";
 import { apiPost, apiGet } from "../api/client";
-import { Check } from "lucide-react";
 import GameSearch from "../features/lobby/gameSearch";
 import { Gamepad2, Hash, AlignLeft, Tag, Users } from "lucide-react";
 import { cn } from "../lib/utils";
@@ -16,7 +15,12 @@ const fetchTags = async () => {
 const HostNewLobby = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { data: tags = [], isError: tagsFailed } = useQuery({
+  const {
+    data: tags = {},
+    isLoading: loadingTags,
+    isError: tagsFailed,
+    refetch: retryTags,
+  } = useQuery({
     queryKey: ["tags"],
     queryFn: fetchTags,
   });
@@ -48,9 +52,8 @@ const HostNewLobby = () => {
     setSelectedTags((prev) => {
       if (prev.includes(tagId)) {
         return prev.filter((id) => id !== tagId);
-      } else {
-        return [...prev, tagId];
       }
+      return prev.length < 12 ? [...prev, tagId] : prev;
     });
   };
 
@@ -257,54 +260,26 @@ const HostNewLobby = () => {
             </div>
           </div>
 
-          {tagsFailed && (
-            <p role="alert" className="text-amber-300 text-sm">
-              Tags could not be loaded. You can still create a lobby without
-              tags.
-            </p>
-          )}
           {/* 4. Tags */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 text-[#7289da] font-semibold text-sm uppercase tracking-wide">
+              <h2 className="flex items-center gap-2 text-[#7289da] font-semibold text-sm uppercase tracking-wide">
                 <Tag size={18} /> Tags
-              </label>
+              </h2>
               <span className="text-[#7289da] text-sm">
-                ({selectedTags.length} selected)
+                ({selectedTags.length}/12 selected)
               </span>
             </div>
 
             <div className="space-y-6">
-              {Array.isArray(tags) ? (
-                // Fallback for flat array (if backend changes reverted)
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
-                  {tags.map((tag) => {
-                    const isSelected = selectedTags.includes(tag.id);
-                    return (
-                      <div
-                        key={tag.id}
-                        onClick={() => handleTagChange(tag.id)}
-                        className={cn(
-                          "flex items-center gap-2 px-4 py-2 rounded-lg  cursor-pointer group transition-all duration-200 select-none",
-                          isSelected
-                            ? " border-[#7289da]  text-[#7289da]"
-                            : " border-[#7289da] text-gray-400 hover:border-[#7289da] hover:text-[#7289da]",
-                        )}
-                      >
-                        <div
-                          className={`w-5 h-5  border-2 border-[#7289da]! ${isSelected ? "bg-[#7289da]" : ""}`}
-                        >
-                          {isSelected && (
-                            <Check size={18} className="text-black" />
-                          )}
-                        </div>
-                        <span className="font-medium text-sm">{tag.name}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                // Render Categorized Tags
+              {loadingTags ? (
+                <p className="text-gray-400 text-sm">Loading tags...</p>
+              ) : tagsFailed ? (
+                <p role="alert" className="text-amber-300 text-sm">
+                  Tags could not be loaded.{" "}
+                  <button type="button" onClick={() => retryTags()} className="underline">Retry</button>
+                </p>
+              ) : Object.keys(tags).length ? (
                 Object.entries(tags).map(([category, categoryTags]) => (
                   <div key={category} className="space-y-3">
                     <h3 className="text-gray-500 text-xs font-bold uppercase tracking-wider pl-1">
@@ -314,23 +289,30 @@ const HostNewLobby = () => {
                       {categoryTags.map((tag) => {
                         const isSelected = selectedTags.includes(tag.id);
                         return (
-                          <div
+                          <button
+                            type="button"
                             key={tag.id}
+                            aria-pressed={isSelected}
                             onClick={() => handleTagChange(tag.id)}
+                            disabled={!isSelected && selectedTags.length >= 12}
                             className={cn(
-                              "flex items-center gap-2 px-3 py-1.5 rounded-full border cursor-pointer group transition-all duration-200 select-none text-sm",
+                              "flex items-center gap-2 px-3 py-1.5 rounded-full border cursor-pointer transition-all duration-200 select-none text-sm focus-visible:outline-2 focus-visible:outline-[#7289da] disabled:opacity-40 disabled:cursor-not-allowed",
                               isSelected
                                 ? "bg-[#7289da]/20 border-[#7289da] text-[#7289da]"
                                 : "bg-[#2f3136] border-transparent text-gray-400 hover:text-white hover:bg-[#36393f]",
                             )}
                           >
                             {tag.name}
-                          </div>
+                          </button>
                         );
                       })}
                     </div>
                   </div>
                 ))
+              ) : (
+                <p className="text-amber-300 text-sm">
+                  No lobby tags are available yet. Ask the administrator to apply the latest database migrations.
+                </p>
               )}
             </div>
           </div>

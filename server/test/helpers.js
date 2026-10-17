@@ -26,8 +26,9 @@ export function assertSafe(value) {
  assert.equal(json.includes('"googleSub"'), false);
  assert.equal(json.includes('"digest"'), false);
 }
-export async function clearDatabase() {
+export async function clearDatabase({ preserveTags = false } = {}) {
   if (!new URL(process.env.DATABASE_URL).pathname.startsWith('/lfg_test')) throw new Error('Refusing to clear a non-test database');
   await prisma.lobbyTag.deleteMany(); await prisma.lobbyParticipant.deleteMany(); await prisma.lobby.deleteMany();
-  await prisma.emailToken.deleteMany(); await prisma.session.deleteMany(); await prisma.user.deleteMany(); await prisma.game.deleteMany(); await prisma.tag.deleteMany();
+  await prisma.emailToken.deleteMany(); await prisma.session.deleteMany(); await prisma.user.deleteMany(); await prisma.game.deleteMany();
+  if (!preserveTags) await prisma.tag.deleteMany();
 }
