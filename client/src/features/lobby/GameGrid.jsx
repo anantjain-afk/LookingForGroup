@@ -1,24 +1,23 @@
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { apiGet } from '../../api/client';
 
-export default function GameGrid() {
-  const navigate = useNavigate();
-  const { data: games = [], isLoading, isError } = useQuery({
-    queryKey: ['popularGames'],
+export default function GameGrid({ limit = 10 }) {
+  const { data: games = [], isLoading, isError, refetch } = useQuery({
+    queryKey: ['landingGames', 'shooters', limit],
     queryFn: async () => {
-      const res = await apiGet('/api/games');
+      const res = await apiGet(`/api/games?category=shooters&limit=${limit}`);
       return res.games;
     }
   });
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        {[...Array(10)].map((_, i) => (
-          <div key={i} className="animate-pulse space-y-2">
-            <div className="bg-slate-800 h-64 rounded-lg w-full"></div>
-            <div className="bg-slate-800 h-4 rounded w-3/4"></div>
+      <div className="grid max-w-4xl grid-cols-2 gap-4 sm:grid-cols-3" aria-label="Loading games">
+        {Array.from({ length: limit }, (_, i) => (
+          <div key={i} className="animate-pulse space-y-3" aria-hidden="true">
+            <div className="aspect-[3/4] rounded-xl bg-[#202020]" />
+            <div className="h-4 w-3/4 rounded bg-[#202020]" />
           </div>
         ))}
       </div>
@@ -26,49 +25,45 @@ export default function GameGrid() {
   }
 
   if (isError) {
-    return <p className="text-red-400">Failed to load popular games.</p>;
+    return (
+      <div className="rounded-xl bg-[#151515] p-6 text-gray-300">
+        <p>Games could not load right now.</p>
+        <button
+          type="button"
+          onClick={() => refetch()}
+          className="mt-3 font-semibold text-emerald-300 underline underline-offset-4 hover:text-emerald-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-400"
+        >
+          Try again
+        </button>
+      </div>
+    );
   }
 
-  // Safety check: Ensure games is an array
-  const gameList = Array.isArray(games) ? games : [];
-  
-  if (!Array.isArray(games)) {
-      console.error("GameGrid: 'games' is not an array:", games);
+  const gameList = Array.isArray(games) ? games.slice(0, limit) : [];
+
+  if (gameList.length === 0) {
+    return <p className="text-gray-300">No games to show yet. Try searching from Browse games.</p>;
   }
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-white mb-6">Popular Games</h2>
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        {gameList.map((game) => (
-          <div 
-            key={game.igdbId}
-            onClick={() => navigate(`/game/${game.igdbId}`)}
-            className="group relative bg-[#151515] rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-all duration-300 border border-transparent hover:border-[#5865F2] hover:shadow-[0_0_15px_rgba(60,255,0,0.2)]"
-          >
-            {/* Image Container */}
-            <div className="aspect-[3/4] w-full relative">
-              <img 
-                src={game.cover || "https://placehold.co/300x400/1e293b/475569?text=No+Cover"} 
-                alt={game.name} 
-                className="w-full h-full object-cover group-hover:opacity-80 transition-opacity"
-                loading="lazy"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
-                <span className="text-emerald-500 text-xs font-bold uppercase tracking-wider mb-1">View Lobbies</span>
-              </div>
-            </div>
-            
-            {/* Game Info */}
-            <div className="p-3">
-              <h3 className="text-white font-bold truncate text-sm md:text-base group-hover:text-emerald-600 transition-colors">{game.name}</h3>
-              {game.genres && game.genres.length > 0 && (
-                <p className="text-gray-500 text-xs truncate mt-1">{game.genres.join(', ')}</p>
-              )}
-            </div>
+    <div className="grid max-w-4xl grid-cols-2 gap-4 sm:grid-cols-3">
+      {gameList.map((game) => (
+        <Link
+          key={game.igdbId}
+          to={`/game/${game.igdbId}`}
+          className="group overflow-hidden rounded-xl bg-[#151515] transition-colors hover:bg-[#202020] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-400"
+        >
+          <div className="aspect-[3/4] overflow-hidden bg-[#202020]">
+            {game.cover && (
+              <img src={game.cover} alt="" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
+            )}
           </div>
-        ))}
-      </div>
+          <div className="px-3 py-3">
+            <h3 className="truncate text-sm font-semibold text-white md:text-base">{game.name}</h3>
+            <p className="mt-1 text-xs text-gray-300">View lobbies</p>
+          </div>
+        </Link>
+      ))}
     </div>
   );
 }
