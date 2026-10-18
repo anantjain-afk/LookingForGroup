@@ -42,7 +42,6 @@ const HostNewLobby = () => {
     title: "",
     description: "",
     maxPlayers: 5,
-    platformId: "",
     region: "",
     language: "",
   });
@@ -75,10 +74,10 @@ const HostNewLobby = () => {
       return;
     }
 
-    if (!formData.platformId || !formData.region) {
+    if (!formData.region) {
       toast({
-        title: "Choose your platform and region",
-        description: "Help teammates find a compatible lobby.",
+        title: "Choose a server region",
+        description: "Help teammates find a lobby in a nearby region.",
         variant: "destructive",
       });
       return;
@@ -91,7 +90,6 @@ const HostNewLobby = () => {
         description: formData.description,
         tags: selectedTags,
         maxPlayers: formData.maxPlayers,
-        platformId: Number(formData.platformId),
         region: formData.region,
         language: formData.language,
       };
@@ -134,40 +132,12 @@ const HostNewLobby = () => {
               <GameSearch
                 key={initialGame?.igdbId || "search"}
                 initialGame={initialGame}
-                onSelect={(game) => {
-                  setSelectedGame(game);
-                  setFormData((previous) => ({ ...previous, platformId: "" }));
-                }}
+                onSelect={setSelectedGame}
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <label className="text-sm text-gray-300">
-              Platform
-              <select
-                aria-label="Lobby platform"
-                value={formData.platformId}
-                onChange={(e) =>
-                  setFormData({ ...formData, platformId: e.target.value })
-                }
-                className="block mt-2 w-full bg-[#424549] p-3 rounded-lg"
-                required
-              >
-                <option value="">Choose platform</option>
-                {selectedGame?.onlinePlatforms?.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-              {selectedGame && !selectedGame.onlinePlatforms?.length && (
-                <span className="text-xs text-amber-300">
-                  Online platforms for this game are awaiting review. Choose
-                  another game for now.
-                </span>
-              )}
-            </label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <label className="text-sm text-gray-300">
               Server region
               <select
@@ -199,8 +169,8 @@ const HostNewLobby = () => {
             </label>
           </div>
           <p className="text-xs text-gray-400">
-            Players should use the same platform and server region. Check the
-            game’s cross-play settings before inviting other platforms.
+            Check the game’s cross-play settings and choose a server region
+            that works for your group.
           </p>
           {/* 2. Lobby Title */}
           <div className="space-y-3">

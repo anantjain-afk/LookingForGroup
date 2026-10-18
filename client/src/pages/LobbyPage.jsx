@@ -35,6 +35,7 @@ export default function LobbyPage() {
     [credentials, setCredentials] = useState(""),
     [showSquad, setShowSquad] = useState(false),
     [confirm, setConfirm] = useState(false),
+    [confirmAction, setConfirmAction] = useState("leave"),
     [audioBlocked, setAudioBlocked] = useState(false);
   const bottom = useRef(null),
     dirty = useRef(false);
@@ -218,10 +219,14 @@ export default function LobbyPage() {
       <ConfirmationModal
         isOpen={confirm}
         onClose={() => setConfirm(false)}
-        onConfirm={closeLobby}
-        title="Close lobby?"
-        description="This ends the lobby for everyone. You can create another whenever you’re ready."
-        confirmText="Close Lobby"
+        onConfirm={confirmAction === "close" ? closeLobby : leave}
+        title={confirmAction === "close" ? "Close lobby?" : "Leave lobby?"}
+        description={
+          confirmAction === "close"
+            ? "This closes the lobby for everyone and removes it from the lobby list."
+            : "The lobby will stay open and listed for seven days, even with no players. You can return later."
+        }
+        confirmText={confirmAction === "close" ? "Close lobby" : "Leave lobby"}
         cancelText="Cancel"
       />
       <header className="min-h-14 px-4 py-2 border-b border-[#1b1c1e] flex items-center justify-between gap-3">
@@ -549,14 +554,33 @@ export default function LobbyPage() {
             {me?.isReady ? "Cancel ready" : "Ready up"}
           </button>
           {host ? (
-            <button
-              disabled={!connected}
-              onClick={() => setConfirm(true)}
-              className="px-3 py-2 border border-red-500/50 rounded-lg text-red-300"
-              aria-label="Close lobby"
-            >
-              <XCircle size={18} />
-            </button>
+            <div className="flex gap-2">
+              <button
+                disabled={!connected}
+                onClick={() => {
+                  setConfirmAction("leave");
+                  setConfirm(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-2.5 py-2 border border-red-500/50 rounded-lg text-red-300 text-sm hover:bg-red-500/10 disabled:opacity-50"
+                aria-label="Leave lobby"
+                title="Leave lobby"
+              >
+                <LogOut size={16} />
+                <span>Leave</span>
+              </button>
+              <button
+                disabled={!connected}
+                onClick={() => {
+                  setConfirmAction("close");
+                  setConfirm(true);
+                }}
+                className="px-2.5 py-2 border border-red-500/50 rounded-lg text-red-300 hover:bg-red-500/10 disabled:opacity-50"
+                aria-label="Close lobby for everyone"
+                title="Close lobby for everyone"
+              >
+                <XCircle size={16} />
+              </button>
+            </div>
           ) : (
             <button
               disabled={!connected}

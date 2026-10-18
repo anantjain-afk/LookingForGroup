@@ -180,11 +180,7 @@ test("denied microphone leaves text usable and hosting retains its selected IGDB
     await expect(member.page.getByLabel("Choose an online game")).toHaveValue(
       "VALORANT",
     );
-    await expect(
-      member.page
-        .getByLabel("Lobby platform")
-        .getByRole("option", { name: "PC", exact: true }),
-    ).toHaveCount(1);
+    await expect(member.page.getByLabel("Lobby platform")).toHaveCount(0);
     await expect(member.page.getByLabel("Server region")).toBeVisible();
     expect(member.errors).toEqual([]);
   } finally {

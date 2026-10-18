@@ -49,7 +49,7 @@ export async function createLobby(input, hostId, provider) {
           .int()
           .refine((value) => CAPACITIES.includes(value), "Choose 2–8 players.")
           .default(5),
-        platformId: z.number().int().positive(),
+        platformId: z.number().int().positive().optional(),
         region: z.enum(REGIONS),
         language: z.string().trim().max(40).optional(),
         tags: z.array(z.string().min(1).max(64)).max(12).default([]),
@@ -58,12 +58,6 @@ export async function createLobby(input, hostId, provider) {
     input,
   );
   const { local, game } = await resolveGame(data.igdbId, provider, true);
-  if (!game.onlinePlatforms.some((p) => p.id === data.platformId))
-    throw new AppError(
-      400,
-      "Online play is not verified for that game and platform.",
-      "PLATFORM_UNAVAILABLE",
-    );
   const tags = [...new Set(data.tags)];
   if (
     tags.length &&
@@ -79,7 +73,6 @@ export async function createLobby(input, hostId, provider) {
       title: data.title,
       description: data.description,
       maxPlayers: data.maxPlayers,
-      platformId: data.platformId,
       region: data.region,
       language: data.language || null,
       hostId,
@@ -109,7 +102,7 @@ export async function getAllLobbies(filters = {}) {
   const where = {
     status: { in: ["OPEN", "FULL"] },
     game: { igdbId: { not: null } },
-    ...(data.platformId ? { platformId: data.platformId } : {}),
+    createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
     ...(data.region ? { region: data.region } : {}),
     ...(data.language
       ? { language: { equals: data.language, mode: "insensitive" } }
@@ -258,9 +251,7 @@ export const leaveLobby = (lobbyId, userId) =>
     if (lobby.status === "CLOSED")
       return { closed: true, igdbId: lobby.game.igdbId };
     membership(lobby, userId);
-    return lobby.hostId === userId
-      ? close(tx, lobby)
-      : remove(tx, lobby, userId);
+    return remove(tx, lobby, userId);
   });
 export const closeLobby = (lobbyId, userId) =>
   locked(lobbyId, async (tx, lobby) => {
@@ -274,7 +265,7 @@ export const kickPlayer = (lobbyId, userId, targetUserId) =>
     if (targetUserId === userId)
       throw new AppError(
         400,
-        "Use Close Lobby to leave as host.",
+        "You cannot remove yourself from the lobby.",
         "VALIDATION_ERROR",
       );
     membership(lobby, targetUserId);
@@ -314,9 +305,7 @@ export const expireDeparture = (lobbyId, userId, cutoff) =>
       lobby.status === "CLOSED"
     )
       return null;
-    return lobby.hostId === userId
-      ? close(tx, lobby)
-      : remove(tx, lobby, userId);
+    return remove(tx, lobby, userId);
   });
 export async function recoverPresence() {
   await prisma.lobbyParticipant.updateMany({

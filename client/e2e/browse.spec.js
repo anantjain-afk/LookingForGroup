@@ -9,12 +9,12 @@ async function setup(page,{fail=false}={}) {
   if(!url.pathname.startsWith('/api/'))return route.continue();
   if(url.pathname==='/api/me')return route.fulfill({status:401,json:{error:{message:'Sign in'}}});
   if(url.pathname==='/api/auth/config')body={googleClientId:''};
-  else if(url.pathname==='/api/games/filters')body={genres:[{id:5,name:'Shooter'},{id:12,name:'RPG'}],platforms:[{id:6,name:'PC'},{id:34,name:'Android'}]};
+  else if(url.pathname==='/api/games/filters')body={genres:[{id:5,name:'Shooter'},{id:12,name:'RPG'}]};
   else if(url.pathname==='/api/games') {
    if(failing&&!url.searchParams.has('category'))return route.fulfill({status:503,json:{error:{message:'Game discovery is temporarily unavailable. Please retry.'}}});
    let list=[...games];
    if(url.searchParams.get('query'))list=list.filter(g=>g.name.toLowerCase().includes(url.searchParams.get('query').toLowerCase()));
-   if(url.searchParams.get('platforms')==='34')list=list.filter(g=>g.igdbId===146903);
+   if(url.searchParams.get('genres')==='5')list=list.filter(g=>g.genres.includes('Shooter'));
    if(url.searchParams.get('sortBy')==='name_asc')list.sort((a,b)=>a.name.localeCompare(b.name));
    body={games:list,nextOffset:null};
   }else if(/^\/api\/games\/\d+$/.test(url.pathname))body=games.find(g=>g.igdbId===Number(url.pathname.split('/').at(-1)));
@@ -32,16 +32,16 @@ test('discovery retains layout and removes unsupported controls',async({page},in
  await expect(page.getByText('Free',{exact:true})).toHaveCount(0);
  await page.screenshot({path:info.outputPath('browse-desktop.png'),fullPage:true});
 });
-test('sort works without search; text and platform filters preserve URL and IGDB links',async({page})=>{
+test('sort works without search; text and genre filters preserve URL and IGDB links',async({page})=>{
  await setup(page);await page.goto('/browse');
  await page.getByLabel('Sort games by').selectOption('name_asc');
  await expect(page).toHaveURL(/sort=name_asc/);
  await expect(page.getByRole('heading',{name:'Competitive Shooters'})).toHaveCount(0);
  await expect(page.locator('article').first()).toContainText('Battlegrounds Mobile India');
  await page.getByRole('searchbox',{name:'Search online games'}).fill('Battlegrounds');
- await page.getByLabel('Android',{exact:true}).click();
- await expect(page.getByLabel('Android',{exact:true})).toBeChecked();
- await expect(page).toHaveURL(/platforms=34/);
+ await page.getByLabel('Shooter',{exact:true}).click();
+ await expect(page.getByLabel('Shooter',{exact:true})).toBeChecked();
+ await expect(page).toHaveURL(/genres=5/);
  await expect(page.locator('article')).toHaveCount(1);
  await page.locator('a[href="/game/146903"]').click();await expect(page).toHaveURL(/\/game\/146903$/);
 });

@@ -61,7 +61,6 @@ const lobby = await createLobby(
   {
     igdbId: 126459,
     title: "Browser test squad",
-    platformId: 6,
     region: "Asia",
     language: "English",
     maxPlayers: 8,

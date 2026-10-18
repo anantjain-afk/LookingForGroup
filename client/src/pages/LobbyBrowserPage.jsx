@@ -36,7 +36,6 @@ export default function LobbyBrowserPage() {
   const [selectedTagIds, setSelectedTagIds] = useState([]);
   const { user, updateUser } = useUserStore();
   const { toast } = useToast();
-  const [platformId, setPlatformId] = useState("");
   const [region, setRegion] = useState("");
   const [language, setLanguage] = useState("");
   const debouncedLanguage = useDebouncedValue(language);
@@ -63,13 +62,11 @@ export default function LobbyBrowserPage() {
       "lobbies",
       gameId,
       selectedTagIds,
-      platformId,
       region,
       debouncedLanguage,
     ], // Include selectedTagIds in queryKey
     queryFn: () =>
       fetchGameLobbies(gameId, selectedTagIds, {
-        platformId,
         region,
         language: debouncedLanguage,
       }),
@@ -97,10 +94,9 @@ export default function LobbyBrowserPage() {
   };
 
   const hasFilters =
-    selectedTagIds.length > 0 || platformId || region || language;
+    selectedTagIds.length > 0 || region || language;
   const clearFilters = () => {
     setSelectedTagIds([]);
-    setPlatformId("");
     setRegion("");
     setLanguage("");
   };
@@ -200,23 +196,7 @@ export default function LobbyBrowserPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 -mt-8 relative z-10 space-y-6">
-        <div className="bg-[#282b30] rounded-xl p-5 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <label className="text-xs text-gray-400">
-            Platform
-            <select
-              aria-label="Filter lobby platform"
-              value={platformId}
-              onChange={(e) => setPlatformId(e.target.value)}
-              className="block w-full bg-[#1e2124] mt-2 p-3 rounded text-gray-200 text-sm"
-            >
-              <option value="">Any platform</option>
-              {game.onlinePlatforms?.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </label>
+        <div className="bg-[#282b30] rounded-xl p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
           <label className="text-xs text-gray-400">
             Server region
             <select
@@ -424,9 +404,7 @@ function LobbyCard({ lobby }) {
           </div>
 
           <p className="text-xs text-gray-400 pt-2">
-            {lobby.game?.onlinePlatforms?.find((p) => p.id === lobby.platformId)
-              ?.name || "Platform unspecified"}{" "}
-            · {lobby.region || "Region unspecified"}
+            {lobby.region || "Region unspecified"}
             {lobby.language ? ` · ${lobby.language}` : ""}
           </p>
           <div

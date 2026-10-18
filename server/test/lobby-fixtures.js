@@ -72,7 +72,6 @@ export async function room(person, extra = {}) {
     body: {
       igdbId: 126459,
       title: "Our online squad",
-      platformId: 6,
       region: "Asia",
       language: "English",
       ...extra,
