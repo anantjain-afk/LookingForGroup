@@ -29,7 +29,6 @@ test("lobby joins are atomic, identities verified, and private state protected t
             igdbId: 126459,
             title: "Invalid room",
             maxPlayers: 9,
-            platformId: 6,
             region: "Asia",
           },
         })
@@ -40,7 +39,7 @@ test("lobby joins are atomic, identities verified, and private state protected t
       (
         await host.client.call("/api/lobbies", {
           method: "POST",
-          body: { igdbId: 126459, title: "No region", platformId: 6 },
+          body: { igdbId: 126459, title: "No region" },
         })
       ).status,
       400,
@@ -216,7 +215,7 @@ test("lobby joins are atomic, identities verified, and private state protected t
   }
 });
 
-test("multiple tabs retain one slot, reconnect restores it, and abandoned hosts close their room", async () => {
+test("multiple tabs retain one slot, reconnect restores it, and abandoned hosts leave rooms open", async () => {
   await clearDatabase();
   const runtime = await start({ catalog: catalog(), reconnectGraceMs: 250 });
   const sockets = [];
@@ -290,16 +289,23 @@ test("multiple tabs retain one slot, reconnect restores it, and abandoned hosts 
     hs.disconnect();
     await eventually(
       async () =>
-        (await prisma.lobby.findUnique({ where: { id: lobby.id } })).status ===
-        "CLOSED",
+        !(await prisma.lobbyParticipant.findUnique({
+          where: {
+            userId_lobbyId: { userId: host.user.id, lobbyId: lobby.id },
+          },
+        })),
+    );
+    assert.equal(
+      (await prisma.lobby.findUnique({ where: { id: lobby.id } })).status,
+      "OPEN",
     );
     assert.equal(
       await prisma.lobbyParticipant.count({ where: { lobbyId: lobby.id } }),
-      0,
+      1,
     );
     assert.equal(
-      (await action(restored, "join_lobby", { lobbyId: lobby.id })).error.code,
-      "LOBBY_CLOSED",
+      (await action(restored, "join_lobby", { lobbyId: lobby.id })).ok,
+      true,
     );
   } finally {
     sockets.forEach((socket) => socket.disconnect());

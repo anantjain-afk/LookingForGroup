@@ -1,4 +1,4 @@
-import { MessageSquare, Plus, User, LogOut } from "lucide-react";
+import { MessageSquare, Plus, User, LogOut, Compass } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useUserStore } from "../store/useUserStore";
 import { useToast } from "../hooks/useToast";
@@ -53,6 +53,16 @@ export default function Navbar() {
         {user && <NavLink to="/profile">Profile</NavLink>}
       </div>
 
+      {/* Mobile browse entry stays visible while desktop uses the full nav. */}
+      <Link
+        to="/browse"
+        aria-label="Browse games"
+        className="sm:hidden inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 px-2.5 py-2 text-sm font-medium text-emerald-300 hover:bg-emerald-500/10"
+      >
+        <Compass size={17} />
+        <span>Browse</span>
+      </Link>
+
       {/* RIGHT */}
       <div className="flex items-center gap-2 sm:gap-5">
         <a
@@ -61,7 +71,7 @@ export default function Navbar() {
           rel="noopener noreferrer"
           aria-label="Send feedback"
           title="Send feedback"
-          className="text-gray-400 hover:text-emerald-400 p-2"
+          className="hidden sm:inline-flex text-gray-400 hover:text-emerald-400 p-2"
         >
           <MessageSquare size={18} />
         </a>

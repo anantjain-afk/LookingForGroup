@@ -1,6 +1,6 @@
 # LFG
 
-Find teammates for online games, browse lobbies by platform and region, chat, and ready up. The final app name is still to be selected.
+Find teammates for online games, browse lobbies by region, chat, and ready up. The final app name is still to be selected.
 
 React/Vite on Vercel, Express/Socket.IO on one Render instance, and PostgreSQL/Prisma on Neon. Redis is optional; presence and voice signaling currently require one backend instance.
 
@@ -17,7 +17,7 @@ Browsing is public. Hosting and joining require a verified account. Google uses 
 
 IGDB IDs identify games in public API responses and routes. A unique `Game.igdbId` maps to an internal database key used by favorites and lobby foreign keys. The first favorite or lobby lazily upserts that game; browsing does not import the catalog. Lobby queries resolve the public IGDB ID to the stored relationship. Separate internal keys preserve existing data and allow explicit legacy reconciliation.
 
-Online eligibility requires explicit online metadata or a reviewed exception. Platform support is verified separately; cross-play is never inferred. Reviewed categories and service shutdown corrections live in `server/src/config/game-catalog.js`.
+Online eligibility requires explicit online metadata or a reviewed exception. Lobbies are no longer filtered or created by platform; players coordinate game and cross-play compatibility themselves. Reviewed categories and service shutdown corrections live in `server/src/config/game-catalog.js`.
 
 ## Validate and deploy
 

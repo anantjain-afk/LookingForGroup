@@ -48,13 +48,20 @@ test('discovery is paginated, curated, safely escaped, cached, and does not crea
  assert.equal(transport2.queries.length,calls+1);
 });
 
-test('name search filters online eligibility and facets locally without IGDB relationship predicates', async () => {
- const transport=fixtures([game(126459),game(999,{multiplayer_modes:[]}),game(777,{genres:[{id:12,name:'RPG'}]}),game(778,{platforms:[{id:34,name:'Android'}],multiplayer_modes:[{platform:34,onlinemax:4}]})]);
+test('short searches recover literal game-name matches missing from IGDB relevance results', async () => {
+ const queries=[];
+ const dungeonsOnline=game(5629,{name:'Dungeons & Dragons Online',platforms:[],multiplayer_modes:[{onlinecoop:true}]});
+ const transport={queries,request:async(_endpoint,query)=>{
+  queries.push(query);
+  if(query.includes('search "dungeons"')) return [game(26606,{name:'Dungeon Fighter Online'}),game(203870,{name:'AI Dungeon'})];
+  if(query.includes('where name ~ *"dungeons"*')) return [dungeonsOnline];
+  return [];
+ }};
  const catalog=new GameCatalog(transport);
- const result=await catalog.list({query:'Game',platforms:'6',genres:'5',limit:10});
- assert.deepEqual(result.games.map(item=>item.igdbId),[126459]);
- assert.match(transport.queries[0],/search "Game";/);
- assert.doesNotMatch(transport.queries[0],/where /);
+ const result=await catalog.list({query:'dungeons',limit:10});
+ assert.deepEqual(result.games.map(item=>item.name),['Dungeons & Dragons Online','Dungeon Fighter Online','AI Dungeon']);
+ assert.match(queries[0],/search "dungeons";/);
+ assert.match(queries[1],/where name ~ \*"dungeons"\*;/);
 });
 
 test('lazy IGDB upserts preserve relationships and allow distinct games with duplicate names', async () => {
@@ -70,7 +77,7 @@ test('lazy IGDB upserts preserve relationships and allow distinct games with dup
  await Promise.all(Array.from({length:10},()=>resolveGame(126459,provider,true)));
  assert.equal(await prisma.game.count(),1);
  assert.equal((await client.call('/api/me/favorites/126459',{method:'POST'})).status,200);
- const lobby=await client.call('/api/lobbies',{method:'POST',body:{igdbId:126459,title:'First online lobby',platformId:6,region:'Asia',maxPlayers:5,tags:[]}});
+ const lobby=await client.call('/api/lobbies',{method:'POST',body:{igdbId:126459,title:'First online lobby',region:'Asia',maxPlayers:5,tags:[]}});
  assert.equal(lobby.status,201); assert.equal(lobby.body.game.igdbId,126459);
  const local=await prisma.game.findUnique({where:{igdbId:126459}});
  assert.equal((await prisma.lobby.findUnique({where:{id:lobby.body.id}})).gameId,local.id);
